@@ -1,0 +1,707 @@
+<?php
+
+/**
+ * Custom Moderation and Draft Work Tables
+ * Custom modifications to Workbench_Moderation module workflow
+ *
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function historicalsurvey_workflow_permission() {
+  return array(
+    'access dashboard' => array(
+      'title' => t('Access Dashboard'),
+    ),
+    'access moderation' => array(
+      'title' => t('Access Moderation Queue'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function historicalsurvey_workflow_menu() {
+  $items['dashboard'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_workflow_form'),
+    'access arguments' => array('access dashboard'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  /*   $items['dashboard/drafts'] = array(
+   'title' => 'My Drafts',
+   'page callback' => 'drupal_get_form',
+   'page arguments' => array('historicalsurvey_workflow_form'),
+   'access arguments' => array('Access My Drafts'),
+   'type' => MENU_SUGGESTED_ITEM,
+   ); */
+  return $items;
+}
+
+/**
+ *   Returns the moderation/draft queue table form
+ *
+ */
+function historicalsurvey_workflow_form(array $form, array &$form_state, $variables = NULL) {
+
+  global $user;
+  drupal_add_css(drupal_get_path('module', 'diff') . '/css/diff.default.css', array('group' => CSS_DEFAULT, 'every_page' => TRUE));
+
+  //either 'drafts' or 'moderation'
+  if ($variables == 'drafts' || ($variables == 'moderation' &&  user_access('access moderation', $user))) {
+    $page_type = $variables;
+  }
+  elseif (empty($variables)) {
+    return '';
+    //return historicalsurvey_workflow_dashboard(),  make this
+  }
+  else {
+    drupal_goto('dashboard');
+  }
+
+  $page_type = $variables;
+
+  //set variables per page type
+  switch ($page_type) {
+    case ('drafts'):
+      $workbench_state = 'draft';
+      $title = t('My Drafts');
+      break;
+    case ('moderation'):
+      $workbench_state = 'in_moderation';
+      $title = t('Moderation Queue');
+      break;
+  }
+
+  $field_names = $field_data = array();
+  $new_data = $old_data = '';
+
+  // Get latest nid/vids in specified workbench state
+  $query = db_select('workbench_moderation_node_history', 'm');
+
+  //if drafts, only get those for the current user
+  if ($page_type == 'drafts') {
+    $query->join('node_revision', 'r', 'm.vid=r.vid');
+    $query->condition('r.uid', $user->uid);
+  }
+
+  $query->condition('m.current', 1)
+        ->condition('m.state', $workbench_state)
+        ->orderBy('m.stamp', 'DESC')
+        ->orderBy('m.hid', 'DESC')
+        ->fields('m', array('nid', 'vid'));
+
+  $in_mod = $query->execute()
+                  ->fetchAllAssoc('nid');
+
+  //determine node to edit, if set
+  $edit_nid = FALSE;
+
+  if (arg(2) === 'edit' && isset($_GET['nid']) && array_key_exists($_GET['nid'], $in_mod)) {
+    $edit_nid = $_GET['nid'];
+  }
+
+  //get the fieldnames  
+  $fields = field_info_instances('node', 'place');
+  foreach ($fields as $field_name => $field_info) {
+    $field_names[] = $field_name;
+  }
+
+  //for each node in specified workbench state, get the old and new data, plus their diff results
+  foreach ($in_mod as $nid_obj) {
+    $current_node = node_load($nid_obj->nid, $nid_obj->vid);
+    $live_node = workbench_moderation_node_live_load($current_node);
+    if (empty($live_node)) {
+      $live_node = array();
+    }
+    foreach ($field_names as $field_name) {
+      $langcode = field_language('node', $current_node, $field_name);
+      if (isset($current_node->{$field_name}[$langcode])) {
+        foreach ($current_node->{$field_name}[$langcode] as $delta => $field_values) {
+          if (isset($field_values['changed']) && $field_values['changed'] == 1) {
+            $new_values = !empty($field_values) ? $field_values : '';
+            $old_values = !empty($live_node->{$field_name}[$langcode][$delta]) ? $live_node->{$field_name}[$langcode][$delta] : '';
+
+            //run diff on the two arrays
+            $value_diff = historicalsurvey_workflow_diff($old_values, $new_values);
+
+            $field_data[$nid_obj->nid]['fields'][$field_name][$delta] = array(
+              'new_data' => $new_values,
+              'old_data' => $old_values,
+              'diff' => $value_diff,
+              //'new_node'=>$current_node,
+              //'old_node'=>$live_node,
+            );
+          }
+        }
+      }
+    }
+    if (!empty($field_data[$nid_obj->nid])) {
+      $field_data[$nid_obj->nid]['new_node'] = $current_node;
+      $field_data[$nid_obj->nid]['old_node'] = $live_node;
+    }
+  }
+
+  $header = array(
+    'title' => '',
+    'data' => '',
+    'edit' => '',
+  );
+
+  //construct the table
+  //todo: send $field_data off to be properly theme()'d
+  foreach ($field_data as $nid => $data) {
+    $options[$nid] = array(
+      'title' => array(
+        'data' => array(
+          '#type' => 'link',
+          '#title' => $data['new_node']->title,
+          '#href' => 'node/' . $nid,
+        ),
+      ),
+      'edit' => array(
+        'data' => array(
+          '#type' => 'link',
+          '#title' => 'edit',
+          '#href' => 'dashboard/' . $page_type . '/edit',
+          '#options' => array(
+            'html' => TRUE,
+            'query' => array(
+              'nid' => $nid,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    //construct the data sub-table to insert into the 'data' column
+    $sub_table = '<table><thead>';
+    $old_node = $data['old_node'];
+    $new_node = $data['new_node'];
+    $old_header = empty($old_node) ? '' : 'Current';
+    if (empty($old_node)) {
+      $sub_table .= '<th></th><th style="align:center;color:red">NEW PLACE</th>';
+    }
+    else {
+      $sub_table .= '<th>Current</th><th>New</th>';
+    }
+    $sub_table .= '</thead>';
+    if ($edit_nid) {
+      module_load_include('inc', 'node', 'node.pages');
+      $place_form = drupal_get_form('place_node_form', $new_node);
+    }
+    foreach ($data['fields'] as $field_name => $delta_array) {
+      if (!empty($delta_array)) {
+        $diff_values = array();
+        $has_old_data = $has_new_data = FALSE;
+        foreach ($delta_array as $delta => $values) {
+
+          //pull the diff values out the array
+          if (isset($values['diff'])) {
+            foreach ($values['diff'] as $diff_array_value) {
+
+              $old_diff = isset($diff_array_value[0]) ? $diff_array_value[0][1]['data'] : '';
+              $new_diff = isset($diff_array_value[0]) ? $diff_array_value[0][3]['data'] : '';
+
+              //clean up the diff values, in future we will customize the diff results
+              $old_diff = str_replace("<div>&#160;</div>", '', $old_diff);
+              $old_diff = str_replace('<div>', '', $old_diff);
+              $old_diff = str_replace('</div>', '', $old_diff);
+
+              $new_diff = str_replace("<div>&#160;</div>", '', $new_diff);
+              $new_diff = str_replace('<div>', '', $new_diff);
+              $new_diff = str_replace('</div>', '', $new_diff);
+
+              if (!empty($diff_array_value['old'])) {
+                $has_old_data = TRUE;
+              }
+              if (!empty($diff_array_value['new'])) {
+                $has_new_data = TRUE;
+              }
+
+              $diff_values[$delta][] = array(
+                'old' => array(
+                  'orig' => $diff_array_value['old'],
+                  'diff' => $old_diff,
+                ),
+                'new' => array(
+                  'orig' => $diff_array_value['new'],
+                  'diff' => $new_diff,
+                ),
+              );
+            }
+          }
+        }
+
+        //get the old and new fields, and replace the changed values with the diff highlighted markup
+        if (!empty($old_node)) {
+          $field_render = field_view_field('node', $old_node, $field_name);
+          $old_data = $has_old_data ? render($field_render) : NULL;
+          if (!empty($old_data)) {
+            foreach ($diff_values as $diff_value_array) {
+              foreach ($diff_value_array as $diff_value) {
+                //debug_write($diff_value,'',true);
+                $old_data = str_replace($diff_value['old']['orig'], '<span class="current">' . $diff_value['old']['diff'] . '</span>', $old_data);
+              }
+            }
+          }
+          else {
+            $old_data = '<em>the field is currently empty</em>';
+          }
+        }
+        else {
+          $old_data = '<em>no previous data</em>';
+        }
+
+        if ($edit_nid && $nid == $edit_nid) {
+          //switch to edit mode, if set
+          $new_data = render($place_form[$field_name]);
+        }
+        else {
+          $display['settings'] = array('revision' => 1);
+          $view = field_view_field('node', $new_node, $field_name, $display);
+          $new_data = $has_new_data ? render($view) : NULL;
+          if (!empty($new_data)) {
+            foreach ($diff_values as $diff_value_array) {
+              foreach ($diff_value_array as $diff_value) {
+                $new_data = str_replace($diff_value['new']['orig'], $diff_value['new']['diff'], $new_data);
+              }
+            }
+          }
+          else {
+            $new_data = array('none');
+          }
+        }
+
+        $sub_table .= '<td width="200px">' . $old_data . '</td>';
+        $sub_table .= '<td width="200px">' . $new_data . '</td>';
+        $sub_table .= '</tr>';
+        $queued_fields[$nid][] = $field_name;
+      }
+    }
+    $sub_table .= '</table>';
+    $options[$nid]['data'] = $sub_table;
+  }
+  if ($edit_nid) {
+    $form['save'] = array(
+      '#type' => 'button',
+      '#value' => t('Save and Go Back'),
+      '#executes_submit_callback' => TRUE,
+      '#weight' => 0,
+    );
+    $form['cancel'] = array(
+      '#type' => 'button',
+      '#value' => t('Cancel and Go Back'),
+      '#executes_submit_callback' => TRUE,
+      '#weight' => 1,
+    );
+    $form['edit_nid'] = array(
+      '#type' => 'hidden',
+      '#value' => $edit_nid,
+    );
+  }
+  else {
+    if ($page_type == 'drafts') {
+      $form['draft'] = array(
+        '#type' => 'button',
+        '#value' => t('Send to Moderation'),
+        '#executes_submit_callback' => TRUE,
+        '#weight' => 0,
+      );
+    }
+    elseif ($page_type == 'moderation') {
+      $form['draft'] = array(
+        '#type' => 'button',
+        '#value' => t('Send back to Draft'),
+        '#executes_submit_callback' => TRUE,
+        '#weight' => 0,
+      );
+      $form['publish'] = array(
+        '#type' => 'button',
+        '#value' => t('Publish'),
+        '#executes_submit_callback' => TRUE,
+        '#weight' => 0,
+      );
+    }
+    $form['delete'] = array(
+      '#type' => 'button',
+      '#value' => t('Delete'),
+      '#executes_submit_callback' => TRUE,
+      '#weight' => 1,
+    );
+  }
+  $form['title'] = array(
+    '#type' => 'item',
+    '#title' => $title,
+    '#weight' => -1,
+  );
+  $form['table'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => !empty($options) ? $options : NULL,
+    '#empty' => t('No content available.'),
+    '#weight' => 2,
+  );
+  $form['queued_fields'] = array(
+    '#type' => 'value',
+    '#value' => !empty($queued_fields) ? $queued_fields : '',
+  );
+  return $form;
+}
+
+/**
+ *  Use Diff module to get raw diff results
+ *
+ */
+function historicalsurvey_workflow_diff($a, $b) {
+  $diff = array();
+  $value_array = !empty($a) ? $a : $b;
+
+  //if(isset($value_array['actual_early_year'])&&$value_array['actual_early_year']=="1950"){
+
+  foreach ($value_array as $name => $value) {
+    //dont pay attention to the custom meta-data columns
+    if (!in_array($name, array('changed', 'promoted_to_field_id', 'promoted_to_revision_id', 'promoted_by'))) {
+      $a_value = isset($a[$name]) ? $a[$name] : NULL;
+      $b_value = isset($b[$name]) ? $b[$name] : NULL;
+
+      if ($a_value !== $b_value) {
+        if ($name == 'tid') {
+          $a_value = !empty($a_value) ? taxonomy_term_load($a_value)->name : '';
+          $b_value = !empty($b_value) ? taxonomy_term_load($b_value)->name : '';
+        }
+        $diff[$name] = diff_get_rows($a_value, $b_value);
+        $diff[$name]['old'] = $a_value;
+        $diff[$name]['new'] = $b_value;
+      }
+    }
+  }
+  //if(isset($b['location'])){debug_write($diff);}
+  return $diff;
+  //}
+}
+
+
+function historicalsurvey_workflow_inline_edit_form($node, $field_name, $form) {
+  module_load_include('inc', 'node', 'node.pages');
+  $form = drupal_get_form('place_node_form', $node);
+  return render($form[$field_name]);
+}
+
+
+function historicalsurvey_workflow_inline_edit_form_submit($form, &$form_state) {
+
+}
+
+
+function historicalsurvey_workflow_drafts_form(array $form, array &$form_state, $variables = NULL) {
+  //same as above but with draft, and different permissions
+
+  return $form;
+}
+
+
+function historicalsurvey_workflow_node_submit($node, $form, &$form_state) {
+
+  //debug_write($form_state['input']);
+}
+
+function historicalsurvey_workflow_form_submit($form, &$form_state) {
+  //debug_write($form_state['values']);
+
+  //get the nodes selected for altering
+  foreach ($form_state['values']['table'] as $value) {
+    if ($value !== 0) {
+      $nids[$value] = $form_state['values']['queued_fields'][$value];
+    }
+  }
+
+  //debug_write($nids);
+  switch ($form_state['values']['op']) {
+    case "Cancel and Go Back":
+      drupal_goto('dashboard/' . arg(1));
+    case "Save and Go Back":
+      $published_node = node_load($form_state['values']['edit_nid']);
+      $current_node = workbench_moderation_node_current_load($published_node);
+      //debug_write($current_node);
+
+      foreach ($form_state['values']['queued_fields'][$form_state['values']['edit_nid']] as $field_name) {
+        $current_node->$field_name = $form_state['input'][$field_name];
+      }
+
+      $edit_form_state['values'] = $form_state['input'];
+      $edit_form_state['values']['op'] = t('Save'); // this seems to be a required value for drupal_form_submit
+      drupal_form_submit('place_node_form', $edit_form_state, $current_node);
+
+      //for some reason, drupal_form_submit will not set the changed flag to TRUE, so we do it manually for now
+      foreach ($form_state['values']['queued_fields'][$form_state['values']['edit_nid']] as $field_name) {
+        db_update('field_revision_' . $field_name)
+          ->fields(array($field_name . '_changed' => 1))
+          ->condition('entity_id', $current_node->nid)  
+          ->condition('revision_id', $current_node->vid)
+        ->execute();
+      }
+      break;
+    case "Send back to Draft":
+      $nodes = entity_load('node', array_keys($nids));
+      foreach ($nodes as $node) {
+        $current_node = workbench_moderation_node_current_load($node);
+        workbench_moderation_moderate($current_node, 'draft');
+      }
+      break;
+    case "Send to Moderation":
+      $nodes = entity_load('node', array_keys($nids));
+      foreach ($nodes as $node) {
+        $current_node = workbench_moderation_node_current_load($node);
+        workbench_moderation_moderate($current_node, 'in_moderation');
+      }
+      break;
+    case "Publish":
+      $nodes = entity_load('node', array_keys($nids));
+      foreach ($nodes as $node) {
+        $current_node = workbench_moderation_node_current_load($node);
+        workbench_moderation_moderate($current_node, 'published');
+      }
+      break;
+    case "Delete":
+      $nodes = entity_load('node', array_keys($nids));
+      foreach ($nodes as $node) {
+        node_revision_delete($node->workbench_moderation['current']->vid);
+        db_delete('workbench_moderation_node_history')
+          ->condition('vid', $node->workbench_moderation['current']->vid)
+          ->execute();
+      }
+      break;
+  }
+}
+
+/**
+ *  Implementation of hook_node_access()
+ *  Denies outside access to editing a node if there is an unpublished draft or a content_lock 'lock', to prevent edit conflicts.  admin will always bypass this
+ *
+ */
+function historicalsurvey_workflow_node_access($node, $op, $account) {
+
+  if ($op == 'update') {
+
+    //debug_write($node->workbench_moderation);
+
+    //get the content_lock lock, content_lock function returns FALSE if there is not lock on this node
+    $lock = content_lock_fetch_lock($node->nid);
+
+    $draft_state = $node->workbench_moderation['current']->state;
+    $draft_vid = $node->workbench_moderation['current']->vid;
+    $pub_vid = isset($node->workbench_moderation['published']) ? $node->workbench_moderation['published']->vid : 0;
+
+    $draft_node = node_load($node->nid, $draft_vid);
+    $draft_uid = $draft_node->revision_uid;
+
+    //special case, if moderator has their own draft, allow them to edit it
+    if ($draft_state == 'in_moderation' && in_array('moderator', $account->roles)) {
+      return NODE_ACCESS_ALLOW;
+    }
+    //otherwise if a user's draft is in moderation, dont allow further editing by them
+    if ($draft_state == 'in_moderation' && $draft_uid == $account->uid) {
+      return NODE_ACCESS_DENY;
+    }
+
+    /*  if there is a lock and it doesnt belong to the current user,
+     *  or if there is an unpublished revision that doesnt belong to the current user,
+     *  deny editting
+     */
+    if (($lock !== FALSE && $lock->uid !== $account->uid) || ($draft_vid !== $pub_vid && $draft_uid !== $account->uid)) {
+      return NODE_ACCESS_DENY;
+    }
+
+    //allow everything else
+    return NODE_ACCESS_ALLOW;
+  }
+}
+
+
+/**
+ *  Implementation of hook_node_view()
+ *  Displays messsages concerning access rules implemented in historicalsurvey_workflow_node_access()
+ *
+ */
+function historicalsurvey_workflow_node_view($node, $view_mode, $langcode) {
+  global $user;
+
+  if ($view_mode === 'full' && $node->type == 'place') {
+
+    /*foreach ($node as $key=>$element){
+     if($key!=='content'){ $node_print[$key]=$element; }
+     }
+     debug_write($node_print);*/
+
+    $lock = content_lock_fetch_lock($node->nid);
+    $timestamp = $lock ? $lock->timestamp : $node->workbench_moderation['current']->timestamp;
+    $ago = t('@interval ago', array('@interval' => format_interval(time() - $timestamp)));
+    $draft_state = $node->workbench_moderation['current']->state;
+
+    $draft_vid = $node->workbench_moderation['current']->vid;
+    $pub_vid = isset($node->workbench_moderation['published']) ? $node->workbench_moderation['published']->vid : 0;
+
+    $draft_node = node_load($node->nid, $draft_vid);
+    $draft_uid = $draft_node->revision_uid;
+
+    if (($lock !== FALSE && $lock->uid !== $user->uid) || ($draft_vid !== $pub_vid && $draft_uid !== $user->uid)) {
+      $author = user_load($draft_uid);
+      $author_uri = entity_uri('user', $author);
+      $author_link = l($author->name, $author_uri['path'], $author_uri['options']);
+
+      //Explain to moderators why they cant view revisions in draft state
+      $for_mods = '';
+      if (in_array('moderator', $user->roles) && $draft_state == 'draft') {
+        $for_mods = t("<br /><strong>Moderators: </strong>You will be able to view these edits once the user submits their draft for moderation.");
+      }
+      //Display 'edit lock' message to users except moderators looking at in-moderation revisions
+      if (in_array('moderator', $user->roles) && $draft_state == 'in_moderation') {
+        drupal_set_message(t("<strong>Moderators: </strong>A revision of this record is currently in the moderation queue, submitted by !author as of %ago.", array('!author' => $author_link, '%ago' => $ago)), 'warning');
+      }
+      else {
+        drupal_set_message(t("This record is currently being edited by !author as of %ago.<br />If you'd like to edit this record, please try again later or message this user.", array('!author' => $author_link, '%ago' => $ago)) . $for_mods, 'warning');
+      }
+    }
+    elseif (($lock !== FALSE && $lock->uid === $user->uid) || ($draft_vid !== $pub_vid && $draft_uid === $user->uid)) {
+
+      if ($draft_state == 'in_moderation') {
+        drupal_set_message(t("You currently have a draft of this record in moderation as of %ago. Once this draft is published you may edit the record again.", array('%ago' => $ago)), 'warning');
+      }
+      elseif ($draft_state == 'draft') {
+        drupal_set_message(t("You are currently editing a new draft of this record as of %ago. Because of this, the record is locked to anyone else wanting to also edit this record.", array('%ago' => $ago)), 'warning');
+      }
+    }
+  }
+}
+
+
+/**
+ *  Implementation of hook_workbench_moderation_access_alter()
+ *  Override some default workbench moderation access settings
+ */
+function historicalsurvey_workflow_workbench_moderation_access_alter(&$access, $op, $node) {
+  // $op supposedly: 'view', 'update', 'delete','moderate', 
+  // $op actually: 'unpublish', 'view revisions' (for View Draft tab) or 'view history' (for Moderate tab)
+  $draft_state = $node->workbench_moderation['current']->state;
+  $draft_uid = $node->workbench_moderation['current']->uid;
+  global $user;
+
+  //give authors of content access to view their drafts while they are in moderation
+  if ($op == 'view revisions' && $draft_state == 'in_moderation' && $draft_uid == $user->uid) {
+    $access = TRUE;
+  }
+}
+
+
+/**
+ *  Implementation of hook_views_default_views_alter()
+ *  Alters the workbench_moderation default 'needs review' menu page with correct wording
+ *  Changes to this function take effect upon cache refresh
+ */
+function historicalsurvey_workflow_views_default_views_alter(&$views) {
+  $handler = &$views['workbench_moderation']->display['needs_review_page']->handler;
+
+  $handler->display->display_options['title'] = 'Moderation Queue';
+  $handler->display->display_options['filters']['state']['value'] = array('in_moderation' => 'in_moderation');
+  $handler->display->display_options['empty']['area']['content'] = 'This list displays content in the "In Moderation" state that you can moderate. Currently there is no such content.';
+  $handler->display->display_options['path'] = 'admin/workbench/in-moderation';
+  $handler->display->display_options['menu']['title'] = 'Moderation Queue';
+}
+
+
+/**
+ *  Implementation of hook_node_presave()
+ *  When nodes are saved and they have unpublished drafts, dont create a new revision nor change uid and timestamps
+ */
+function historicalsurvey_workflow_node_presave($node) {
+
+  //debug_write($node,'presave');
+
+  if (isset($node->workbench_moderation)) {
+    $draft_vid = $node->workbench_moderation['current']->vid;
+    $pub_vid = isset($node->workbench_moderation['published']) ? $node->workbench_moderation['published']->vid : 0;
+    $draft_state = $node->workbench_moderation['current']->state;
+
+    //if there is unpublished content, editing it and moving it around different states shouldnt change metadata
+    if ($draft_vid !== $pub_vid && ($draft_state == 'in_moderation' || $draft_state == 'draft')) {
+      unset($node->revision); //dont create revision
+    }
+  }
+}
+
+
+/**
+ *  Implementation of hook_node_update()
+ *  After publishing drafts, we must correct some default updated values.
+ *  We dont want the moderators uid and timestamp on the revision (a default),
+ *  so we need to change it back to the orig authors uid and timestamp.
+ *  Also, we make sure the published version remains with the same revision
+ */
+function historicalsurvey_workflow_node_update($node) {
+
+  if ($node->type == 'place') {
+
+    $draft_state = $node->workbench_moderation['current']->state;
+    $draft_from_state = $node->workbench_moderation['current']->from_state;
+
+    if (isset($node->workbench_moderation['published'])) {
+      $published_from_state = $node->workbench_moderation['published']->from_state;
+      $published_vid = $node->workbench_moderation['published']->vid;
+    }
+    else {
+      //place is new
+      $published_from_state = NULL;
+      $published_vid = NULL;
+    }
+
+    if ($draft_state != 'published') {
+      //when creating new drafts or when moving drafts around different unpublished states,
+
+      db_update('node_revision')
+        ->fields(array('uid' => $node->revision_uid, 'timestamp' => $node->revision_timestamp))
+        ->condition('nid', $node->nid)
+        ->condition('vid', $node->vid)
+      ->execute();
+
+      //also, make sure published version remains published (only an issue for editting unpublished drafts)
+      if (!empty($published_from_state) && $published_from_state != 'published') {
+        db_update('node')
+          ->fields(array('vid' => $published_vid, 'status' => 1))
+          ->condition('nid', $node->nid)
+        ->execute();
+      }
+
+      //and when saving edits to unpublished drafts, correct the time and uid
+      if (isset($node->op)) {
+        db_update('node_revision')
+          ->fields(array('uid' => $node->original->revision_uid, 'timestamp' => $node->original->revision_timestamp))
+          ->condition('nid', $node->nid)
+          ->condition('vid', $node->vid)
+        ->execute();
+      }
+    }
+
+    //published-to-published newly-created place or revision, needs revision status to remain published 
+    if ($draft_state == 'published') {
+      //newly-created places or moderation-to-published
+      if ($node->created == $node->changed || $draft_from_state != 'published') {
+        db_update('node_revision')
+          ->fields(array('status' => 1))
+          ->condition('nid', $node->nid)
+          ->condition('vid', $node->vid)
+        ->execute();
+      }
+      else {
+        //published-to-published revision
+        /* db_update('node_revision')
+         ->fields(array('uid' => $node->revision_uid,'timestamp' => $node->revision_timestamp))
+         ->condition('nid', $node->nid)
+         ->condition('vid', $node->workbench_moderation['current']->vid)
+         ->execute(); */
+      }
+    }
+  }
+}

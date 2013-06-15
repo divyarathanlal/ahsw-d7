@@ -1,0 +1,12 @@
+name = HistoricalSurvey Survey
+description = "Survey" content type
+core = 7.x
+package = HistoricalSurvey
+dependencies[] = image
+;dependencies[] = geofield
+dependencies[] = user_reference
+dependencies[] = historicalsurvey_place
+
+;project = historicalsurvey_survey
+;version = 7.x-1.0
+;project status url = http://historicalsurvey.org/drupal-updates/release-history

@@ -1,0 +1,72 @@
+body.page-place-upload  {
+  background-color: #faeae4;
+}
+
+.page-place-upload  #main{
+  background-color:white;
+  padding:10px;
+  outline: 1px solid #ccc;
+}
+
+
+.page-place-upload  #edit-field-photo{
+  width: 470px;
+  float: left;
+}
+.page-place-upload  #edit-field-document{
+  width: 470px;
+  float: right;
+}
+
+.page-place-upload  #edit-field-photo legend,
+.page-place-upload  #edit-field-document legend{
+  background-color: #eee;
+  width: 100%;
+  padding: 5px;
+}
+
+.page-place-upload  #edit-field-photo legend span,
+.page-place-upload  #edit-field-document legend span{
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.page-place-upload  #edit-field-photo fieldset,
+.page-place-upload  #edit-field-document fieldset{
+  border:none;
+  margin-top:20px;
+}
+
+.page-place-upload  #upload-header{
+  font-size: .9em;
+  outline: 1px solid #ccc;
+  background-color: #eee;
+}
+
+.page-place-upload  #upload-header h4{
+  padding-top:5px;
+  padding-left:10px;
+  margin:0;
+}
+.page-place-upload  #upload-header p{
+  padding: 0 10px;
+}
+
+.page-place-upload  #upload-header ul{
+  list-style:none;
+}
+
+.page-place-upload #upload-address {
+  font-size: 115%;
+  margin:10px;
+}
+
+.page-place-upload #edit-actions input[type="submit"]{
+  background-color:darkBlue;
+  color:white;
+  padding:6px;
+  border:none;
+  margin:5px;
+  font-size:95%;
+  font-weight:bold;
+}

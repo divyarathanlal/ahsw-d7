@@ -1,0 +1,334 @@
+/**
+ * @file
+ * Node Styling
+ *
+ * Style anything that isn't in the $content variable.
+ */
+
+.page-node{
+  background-color:#eee;
+}
+
+.node { /* Node wrapper */
+}
+
+.preview .node { /* Preview of the content before submitting new or updated content */
+  /* background-color: #ffffea; */ /* Drupal core uses a #ffffea background */
+}
+
+.node .node-title { /* Node title */
+}
+
+.node .user-picture { /* The picture of the node author */
+}
+
+.node .submitted { /* The "posted by" information */
+}
+
+.node .content { /* Node's content wrapper */
+}
+
+.node ul.links { /* Node links. See also the ul.links declaration in the pages.css. */
+}
+
+.node-promoted { /* A node that has been promoted to the front page */
+}
+
+.node-sticky { /* A sticky node (displayed before others in a list) */
+}
+
+.node-by-viewer { /* A node created by the current user */
+}
+
+.node-teaser { /* A node displayed as teaser */
+}
+
+/*
+ * All nodes are given a node-FOO class that describes the type of content that
+ * it is. If you create a new content type called "my-custom-type", it will
+ * receive a "node-my-custom-type" class.
+ */
+
+.node-page { /* Page content node */
+}
+
+.node-article { /* Article content node */
+}
+
+.node-unpublished { /* Unpublished nodes */
+  /* background-color: #fff4f4; */ /* Drupal core uses a #fff4f4 background */
+}
+
+.node-unpublished p.unpublished,
+.comment-unpublished p.unpublished { /* The word "Unpublished" displayed underneath the content. */
+  height: 0;
+  overflow: visible;
+  color: #d8d8d8;
+  font-size: 75px;
+  line-height: 1;
+  font-family: Impact, "Arial Narrow", Helvetica, sans-serif;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  word-wrap: break-word; /* A very nice CSS3 property */
+}
+
+.lt-ie8 .node-unpublished p.unpublished > *,
+.lt-ie8 .comment-unpublished > * {
+  position: relative; /* Otherwise these elements will appear below the "Unpublished" text. */
+}
+
+
+/* CUSTOM description of wrapper blocks */
+#fields-1-wrapper,
+#fields-2-wrapper,
+#guide-wrapper,
+#tags-wrapper,
+#reviewed-fields-wrapper,
+#notes-wrapper{
+  background-color:white;
+  outline:1px solid #ccc;
+}
+
+#top-block-wrapper .field-wrapper{
+  margin-top:10px;  
+  /* height:35px; */
+  overflow:hidden;
+}
+
+#top-block-wrapper{
+  margin-bottom:10px; 
+  min-height:440px
+}
+
+#fields-1-wrapper{
+  /* height:300px; */
+  margin-bottom:10px;
+  min-height:300px;
+}
+
+#fields-2-wrapper{
+  min-height:130px;
+}
+
+#field-designation-official-wrapper{
+  min-height:120px;
+}
+
+#guide-wrapper{
+  float:right;
+  height:440px
+}
+
+#tags-wrapper{
+  height:50px; 
+  margin-bottom:10px;
+}
+
+#notes-wrapper{  
+  min-height:50px; 
+}
+
+
+/* reviewed fields table */
+.table-wrapper{
+  background-color:white;
+  float:left;
+}
+
+#reviewed-fields{
+  //table-layout:fixed;
+  margin:20px 0 50px 0;
+  width:880px;
+  border-bottom:1px solid white;
+}
+
+#reviewed-fields-wrapper{
+  margin-bottom:10px;
+}
+
+#reviewed-fields .field-wrapper{ 
+  overflow:hidden;
+}
+
+/* column review level labels */
+#reviewed-fields td.review-level{
+  padding:0;  
+  font-size:71%;
+}
+
+#reviewed-fields td.review-level div{
+  margin-right:auto;
+  margin-left:auto;
+  float:none;
+  display:block;
+  text-align:center;
+  line-height:150%;
+}
+
+#reviewed-fields td.review-level.column-open{
+  background-color:white;  
+  font-weight:bold;
+  font-size:71%;
+}
+
+/* row field name labels */
+#reviewed-fields td.field-name{  
+  text-align:right;
+  background-color:#fff;
+  vertical-align: top;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  line-height:1em;
+  border-top:hidden;
+  border-left:hidden;
+  border-bottom:hidden;
+}
+
+#reviewed-fields td.field-name.row-open{  
+  font-weight:bold;
+}
+
+
+/* field cells */
+#reviewed-fields .field-value{ 
+  vertical-align: top;
+  /*-webkit-mask: -webkit-linear-gradient( bottom, rgba(255,255,255,0), rgba(255,255,255,1) 30%, rgba(255,255,255,1) 95%, rgba(255,255,255,0) );*/
+}
+
+#reviewed-fields td.row-open.column-open .field-wrapper{ 
+  overflow:hidden;
+}
+
+#reviewed-fields td.row-closed.column-closed{
+  background-color:#f8f8f8;
+}
+
+#reviewed-fields td.row-closed .field-wrapper    {height:  30px;}
+#reviewed-fields td.row-open .field-wrapper      {height:  auto;}
+#reviewed-fields td.column-closed .field-wrapper {width:   75px;}
+#reviewed-fields td.column-open .field-wrapper   {width:   567px;}
+
+#reviewed-fields td.column-closed .current-version   {width:   71px;overflow:hidden}
+#reviewed-fields td.column-open .current-version   {
+  width:   533px;
+  overflow:hidden;
+  /* background-color: white; */
+  padding: 5px;
+}
+
+
+/* cell border specifics */
+#reviewed-fields tbody tr,
+#reviewed-fields col{
+  border: 1px solid #eee;
+}
+#reviewed-fields td.review-level{
+
+  border-top: hidden;
+  border-left: hidden;
+  border-right: hidden;
+}
+
+#reviewed-fields td.field-value.row-open.column-open{
+  border:1px solid black;
+}
+
+#reviewed-fields td.field-value.row-open.column-closed[column='preservation-office-review']{
+  border-left:1px solid #ccc;
+  border-top:1px solid #ccc;
+  border-bottom:1px solid #ccc;
+}
+#reviewed-fields td.field-value.row-open.column-closed[column='professional-review']{
+  border-top:1px solid #ccc;
+  border-bottom:1px solid #ccc;
+}
+#reviewed-fields td.field-value.row-open.column-closed[column='unreviewed']{  
+  border-right:1px solid #ccc;
+  border-top:1px solid #ccc;
+  border-bottom:1px solid #ccc;
+}
+#reviewed-fields td.field-value.row-closed.column-open{  
+  border-right:1px solid #ccc;
+  border-left:1px solid #ccc;
+}
+#reviewed-fields td.review-level.column-open{  
+/*   border-top:1px solid #ccc;
+  border-left:1px solid #ccc;
+  border-right:1px solid #ccc; */
+}
+#reviewed-fields td.review-level.column-closed{  
+/*   border-left:1px solid #ccc;
+  border-right:1px solid #ccc; */
+}
+#reviewed-fields td.field-value.row-closed.column-open[row='reference']{  
+  border-bottom:1px solid #ccc;
+}
+#reviewed-fields td.field-value.row-closed.column-open[row='designation_potential']{  
+  border-top:1px solid #ccc;
+}
+
+/* edit */
+#reviewed-fields td.field-value.row-open.column-open .field-wrapper{
+  /* background-color:#ffddd0; */
+  background-color:white;
+}
+
+.edit-button{
+  float:right;
+  display:none;
+}
+
+/*tabs*/
+#identification{
+  display:block;
+}
+#history{
+  display:none;
+}
+#architectural-description{
+  display:none;
+}
+#references{
+  display:none;
+}
+
+#reviewed-fields-tabs .tab{
+  text-align:center;
+  font-size:75%;
+  font-weight:bold;
+  color:darkblue;
+  margin-bottom:20px;
+  padding:2px 0 2px 0;
+  background-color:#eee;
+}
+
+#reviewed-fields-tabs .tab.active{
+  background-color:#fff;
+  font-weight:normal;
+  color:#666;
+}
+
+#notes-wrapper {
+  padding:20px 0 20px 0;
+}
+
+
+/* edit mode */
+body.edit-mode{
+  background-color:#faeae4;
+}
+
+body.edit-mode #reviewed-fields td.field-value.row-open.column-open{
+  border:1px solid red;
+}
+
+body.edit-mode #reviewed-fields td.field-name.row-open{  
+  font-weight:bold;
+  color:red;
+}
+body.edit-mode #reviewed-fields td.review-level.column-open {
+  font-weight: bold;
+  font-size: 71%;
+  color:red;
+}

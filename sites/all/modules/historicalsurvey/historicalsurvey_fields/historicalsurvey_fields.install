@@ -1,0 +1,2266 @@
+<?php
+
+/**
+ * @file
+ * Install file for HistoricalSurvey Place module, based on Node Example
+ *
+ * The definition of the fields for the module is here,
+ *
+ * @see http://drupal.org/node/707832
+ * @see http://drupal.org/node/443536
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * This hook is called when the user enables the module for the first time
+ * (or on subsequent enables after the module has been uninstalled). So it's
+ * a good place to define our new node type.
+ *
+ * We will:
+ * - Add the body field.
+ * - Configure the body field.
+ * - Create color, quantity, and image fields.
+ * - Create color, quantity, and image instances.
+ *
+ * @see node_type_set_defaults()
+ * @see field_info_instance()
+ * @see field_update_instance()
+ * @see field_create_field()
+ * @see field_create_instance()
+ * @ingroup place
+ */
+function historicalsurvey_fields_install() {
+
+  $vocab_array=historicalsurvey_fields_get_vocab();
+  historicalsurvey_field_make_vocab($vocab_array);
+
+}
+
+function historicalsurvey_field_make_vocab($vocab_array) {
+
+  //Create new vocab
+  foreach ($vocab_array as $vocab_attr) {
+    $new_vocab=array(
+      'name' => $vocab_attr['human_name'],
+      'machine_name' => $vocab_attr['machine_name'],
+      'weight' => isset($vocab_attr['weight'])?$vocab_attr['weight']:0,
+      'module' => 'historicalsurvey_fields',
+    );
+    taxonomy_vocabulary_save((object) $new_vocab);
+    $vid = taxonomy_vocabulary_machine_name_load($vocab_attr['machine_name'])->vid;
+    if ($vid && isset($vocab_attr['terms'])) {
+      historicalsurvey_field_make_terms($vocab_attr['terms'],$vid);
+    }
+  }
+}
+
+function historicalsurvey_field_make_terms($term_array=FALSE,$vid=FALSE,$parent_tid=FALSE){
+
+  //Create new terms
+  if ($term_array && $vid) {
+    foreach ($term_array as $term_values) {
+      if (is_array($term_values)) {
+        $term = array(
+          'name' => $term_values['name'],
+          'weight' => isset($term_values['weight'])?$term_values['weight']:0,
+          'vid' => $vid,          
+        );
+        if($parent_tid) {
+         $term['parent'] = $parent_tid;
+        }
+        $term_object=(object) $term;          
+        taxonomy_term_save($term_object);
+        
+        //Recurse for subterms
+        if(isset($term_values['terms']) && $term_object->tid) {
+          historicalsurvey_field_make_terms($term_values['terms'],$vid,$term_object->tid);
+        }          
+      }
+    }
+  }
+}
+
+
+/**
+ * Implements hook_uninstall().
+ *
+ * This hook is called when the user not only has disabled the module,
+ * but also uninstalls it from the 'uninstall' tab in the module page.
+ *
+ * So it's a perfect time to remove our fields and instances and new
+ * node type from the database.
+ *
+ * @ingroup place
+ */
+function historicalsurvey_fields_uninstall() {
+  
+  //Remove the vocabs
+  $query = new EntityFieldQuery();
+  $result = $query->entityCondition('entity_type', 'taxonomy_vocabulary')
+    ->propertyCondition('module', 'historicalsurvey_fields')
+    ->execute();
+    
+  if(isset($result['taxonomy_vocabulary'])) {
+    $vids=array_keys($result['taxonomy_vocabulary']);
+    foreach($vids as $vid) {
+      taxonomy_vocabulary_delete($vid);
+    }
+  }
+}
+
+
+/**
+ *  Defines the custom terms
+ */
+function historicalsurvey_fields_get_vocab() {
+  return array(
+    array(
+      'machine_name' => 'value_survey_effort_state',
+      'human_name' => 'Values for Survey Effort State',
+      'terms' => array(
+        array(
+          'name' => "Open",
+          'weight' => 0,
+        ),
+        array(
+          'name' => "Closed",
+          'weight' => 1,
+        ),
+      ),
+    ),
+    array(
+      'machine_name' => 'value_place_type',
+      'human_name' => 'Values for Place Type',
+      'terms' => array(
+        array(
+          'name' => 'District',
+          'weight' => 0,
+        ),
+        array(
+          'name' => 'Site',   
+          'weight' => 1,
+        ),    
+        array(
+          'name' => 'Building',   
+          'weight' => 2,
+        ),   
+        array(
+          'name' => 'Structure',    
+          'weight' => 3,
+        ),  
+        array(
+          'name' => 'Object',
+          'weight' => 4,
+        ),
+      ),
+    ),
+    array(
+      'machine_name' => 'value_status',
+      'human_name' => 'Values for Status',
+      'terms' => array(
+        array(
+          'name' => 'Existing',
+          'weight' => 0,
+        ),   
+        array(           
+          'name' => 'Demolished',
+          'weight' => 1,
+        ),
+      ),
+    ),
+    array(
+      'machine_name' => 'value_moved',
+      'human_name' => 'Values for Moved',
+      'terms' => array(        
+        array(
+          'name' => 'Moved to this Location',
+          'weight' => 2,
+        ),   
+        array(
+          'name' => 'Moved from this Location',
+          'weight' => 2,
+        ),   
+        array(
+          'name' => 'Has not Moved',
+          'weight' => 2,
+        ),
+      ),
+    ),
+    array(
+      'machine_name' => 'value_designation',
+      'human_name' => 'Values for Designation',
+      'terms' => array(
+        array(
+          "weight" => 0,
+          "name" => "City of Austin Landmark",
+          "terms" => array(
+            array(
+              "name"=>"Designated",
+              "weight"=>0
+            ),
+            array(
+              "name"=>"Eligible",
+              "weight"=>1
+            ),
+            array(
+              "name"=>"Not Eligible",
+              "weight"=>2
+            ),
+            array(
+              "name"=>"Not Designated, Eligibility not Determined",
+              "weight"=>3
+            ),
+          ),
+        ),
+        array(
+          "weight" => 1,
+          "name" => "Local Historic District",
+          "terms" => array(
+            array(
+              "name"=>"Contributing to a District",
+              "weight"=>0
+            ),
+            array(
+              "name"=>"Non-Contributing to a District",
+              "weight"=>1
+            ),
+            array(
+              "name"=>"Not located in a District",
+              "weight"=>3
+            ),
+          ),
+        ),
+        array(
+          "weight" => 2,
+          "name" => "National Register of Historic Places (Individual)",
+          "terms" => array(
+            array(
+              "name"=>"Individually Designated",
+              "weight"=>0
+            ),         
+            array(
+              "name"=>"Individually Eligible",
+              "weight"=>1
+            ),         
+            array(
+              "name"=>"Individually Not Eligible",
+              "weight"=>2
+            ),         
+            array(
+              "name"=>"Individually Not Designated, Eligibility not Determined",
+              "weight"=>3
+            ),
+          ),
+        ),        
+        array(
+          "weight" => 3,
+          "name" => "National Register of Historic Places (District)",
+          "terms" => array(
+            array(
+              "name"=>"Contributing to a District",
+              "weight"=>4
+            ),         
+            array(
+              "name"=>"Non-Contributing to a District",
+              "weight"=>5
+            ),         
+            array(
+              "name"=>"Not located in a District",
+              "weight"=>6
+            ),  
+          ),
+        ),   
+        array(
+          "weight" =>  4,
+          "name" => "Recorded Texas Historic Landmark",
+          "terms" => array(
+            array(
+              "name"=>"Designated",
+              "weight"=>0
+            ),
+            array(
+              "name"=>"Eligible",
+              "weight"=>1
+            ),
+            array(
+              "name"=>"Not Eligible",
+              "weight"=>2
+            ),
+            array(
+              "name"=>"Not Designated, Eligibility not Determined",
+              "weight"=>3
+            ),
+          ),
+        ),
+        array(
+          "weight" => 5,
+          "name" => "State Archeological Landmark",
+          "terms" => array(
+            array(
+              "name"=>"Designated",
+              "weight"=>0
+            ),
+            array(
+              "name"=>"Eligible",
+              "weight"=>1
+            ),
+            array(
+              "name"=>"Not Eligible",
+              "weight"=>2
+            ),
+            array(
+              "name"=>"Not Designated, Eligibility not Determined",
+              "weight"=>3
+            ),
+          ),
+        ),
+        array(
+          "weight" => 6,
+          "name" => "Historic Texas Cemetery",
+          "terms" => array(          
+            array(
+              "name"=>"Designated",
+              "weight"=>0
+            ),          
+            array(
+              "name"=>"Eligible",
+              "weight"=>1
+            ),          
+            array(
+              "name"=>"Not Eligible",
+              "weight"=>2
+            ),          
+            array(
+              "name"=>"Not Designated, Eligibility not Determined",
+              "weight"=>3
+            ),
+          ),
+        ),       
+      ),
+    ),
+    array(
+      'machine_name' => 'value_survey_effort',
+      'human_name' => 'Values for Survey Effort',
+    ),
+    array(
+      'machine_name' => 'value_tag',
+      'human_name' => 'Values for Tag',
+    ),
+    array(
+      'machine_name' => 'value_use',
+      'human_name' => 'Values for Use',
+      'terms' => array(
+        array(
+          "name" => "Domestic",
+          "weight" => 0,
+          "terms" => array(
+            array(
+              "name" => "Single Dwelling",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Multiple Dwelling",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Secondary Structure",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Hotel",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Institutional Housing",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Camp",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Village Site",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Commerce/Trade",
+          "weight" => 1,
+          "terms" => array(
+            array(
+              "name" => "Business",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Professional",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Organizational",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Financial Institution",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Specialty Store",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Department Store",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Restaurant",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Warehouse",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Social",
+          "weight" => 2,
+          "terms" => array(
+            array(
+              "name" => "Meeting Hall",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Clubhouse",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Civic",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Government",
+          "weight" => 3,
+          "terms" => array(
+            array(
+              "name" => "Capitol",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "City Hall",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Correctional Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Fire Station",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Government Office",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Diplomatic Building",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Customs House",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Post Office ",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Public Works",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Courthouse",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Education",
+          "weight" => 4,
+          "terms" => array(
+            array(
+              "name" => "Schools",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "College",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Library",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Research Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Education-Related",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Religion",
+          "weight" => 5,
+          "terms" => array(
+            array(
+              "name" => "Religious Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Ceremonial Site",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Church School ",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Church",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Related Residence",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Funerary",
+          "weight" => 6,
+          "terms" => array(
+            array(
+              "name" => "Cemetery",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Graves/Burials",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Mortuary",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Recreation and Culture",
+          "weight" => 7,
+          "terms" => array(
+            array(
+              "name" => "Theater ",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Auditorium",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Museum",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Music Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Outdoor Recreation",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Fair",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Monument/Marker",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Public Art",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Agriculture/Subsistance",
+          "weight" => 8,
+          "terms" => array(
+            array(
+              "name" => "Processing",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Storage",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Agricultural Field",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Animal Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Fishing Facility or Site",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Horticultural Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Agricultural Outbuilding",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Irrigation Facility",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Industry/Processing/Extraction",
+          "weight" => 9,
+          "terms" => array(
+            array(
+              "name" => "Manufacturing Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Extractive Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Waterworks",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Energy Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Communications Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Processing Site",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Industrial Storage",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Health Care",
+          "weight" => 10,
+          "terms" => array(
+            array(
+              "name" => "Hospital",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Clinic",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Sanitarium",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Medical Business/Office",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Resort",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Defense",
+          "weight" => 11,
+          "terms" => array(
+            array(
+              "name" => "Arms Storage",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Fortification",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Battle Site",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Military Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Coast Guard Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Naval Facility",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Air Force Facility",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Landscape",
+          "weight" => 12,
+          "terms" => array(
+            array(
+              "name" => "Parking Lot ",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Park",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Plaza",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Garden",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Forest",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Unoccupied Land",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Underwater",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Natural Feature",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Street Furniture/Object",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Conservation Area",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Transportation",
+          "weight" => 13,
+          "terms" => array(
+            array(
+              "name" => "Rail-Related",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Air-Related",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Water-Related",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Road-Related",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Pedestrian-Related",
+              "weight" => 0,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Work in Progress",
+          "weight" => 14,
+        ),
+        array(
+          "name" => "Unknown",
+          "weight" => 15,
+        ),
+        array(
+          "name" => "Vacant/Not in Use",
+          "weight" => 16,
+        ),
+        array(
+          "name" => "Other",
+          "weight" => 17,
+        ),
+      ),
+    ),
+    array(
+      'machine_name' => 'value_style',
+      'human_name' => 'Values for Style',
+      'terms' => array(
+        array(
+          "name" => "No Style",
+          "weight" => 0,
+        ),
+        array(
+          "name" => "Colonial",
+          "weight" => 1,
+          "terms" => array(
+            array(
+              "name" => "French Colonial",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Spanish Colonial/Mexican Baroque",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Dutch Colonial/Flemish Colonial",
+              "weight" => 2,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Early Republic",
+          "weight" => 2,
+          "terms" => array(
+            array(
+              "name" => "Early Classical Revival",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Federal/Adamesque",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Log Traditional",
+              "weight" => 2,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Mid-19th Centruy",
+          "weight" => 3,
+          "terms" => array(
+            array(
+              "name" => "Early Romanesque Revival",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Greek Revival",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Gothic Revival",
+              "weight" => 2,
+            ),
+            array(
+              "name" => "Italian Villa",
+              "weight" => 3,
+            ),
+            array(
+              "name" => "Egyptian Revival",
+              "weight" => 4,
+            ),
+            array(
+              "name" => "Moorish Revival",
+              "weight" => 5,
+            ),
+            array(
+              "name" => "Italian Villa",
+              "weight" => 6,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Late Victorian",
+          "weight" => 4,
+          "terms" => array(
+            array(
+              "name" => "High Victorian Gothic Revival",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "High Victorian Italianate",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Second Empire/Mansard",
+              "weight" => 2,
+            ),
+            array(
+              "name" => "Queen Anne",
+              "weight" => 3,
+            ),
+            array(
+              "name" => "Stick/Eastlake",
+              "weight" => 4,
+            ),
+            array(
+              "name" => "Shingle Style",
+              "weight" => 5,
+            ),
+            array(
+              "name" => "Romanesque Revival/Richardsonian Romanesque",
+              "weight" => 6,
+            ),
+            array(
+              "name" => "Folk Victorian",
+              "weight" => 7,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Late 19th and 20th Century Revivial",
+          "weight" => 5,
+          "terms" => array(
+            array(
+              "name" => "Beaux Arts Classicism",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Colonial Revival/Georgian Revival",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Classical Revival/Neo-Classical Revival",
+              "weight" => 2,
+            ),
+            array(
+              "name" => "Tudor Revival",
+              "weight" => 3,
+            ),
+            array(
+              "name" => "Late Gothic Revival/Collegiate Gothic",
+              "weight" => 4,
+            ),
+            array(
+              "name" => "Mission/Spanish Colonial Revival",
+              "weight" => 5,
+            ),
+            array(
+              "name" => "Renaissance Revival",
+              "weight" => 6,
+            ),
+            array(
+              "name" => "Pueblo Revival",
+              "weight" => 7,
+            ),
+            array(
+              "name" => "Monterey Style",
+              "weight" => 8,
+            ),
+          ),
+        ),
+        array(
+          "name" => "Modern",
+          "weight" => 6,
+          "terms" => array(
+            array(
+              "name" => "Skyscraper",
+              "weight" => 0,
+            ),
+            array(
+              "name" => "Commercial Style",
+              "weight" => 1,
+            ),
+            array(
+              "name" => "Prairie School/Wrightian",
+              "weight" => 2,
+            ),
+            array(
+              "name" => "Bungalow/Craftsman",
+              "weight" => 3,
+            ),
+            array(
+              "name" => "California Style/Ranch Style",
+              "weight" => 4,
+            ),
+            array(
+              "name" => "Moderne/Streamline",
+              "weight" => 5,
+            ),
+            array(
+              "name" => "Art Deco",
+              "weight" => 6,
+            ),
+            array(
+              "name" => "International Style/Miesian",
+              "weight" => 7,
+            ),
+            array(
+              "name" => "New Formalism",
+              "weight" => 8,
+            ),
+            array(
+              "name" => "Neo-Expressionism",
+              "weight" => 9,
+            ),
+            array(
+              "name" => "Brutalism",
+              "weight" => 10,
+            ),
+            array(
+              "name" => "Post-Modern",
+              "weight" => 11,
+            ),
+          ),
+        ),
+      ),
+    ),
+    /* array(
+      'machine_name' => 'value_plan_type',
+      'human_name' => 'Values for Plan Types',
+      'terms'  => array(
+        array(
+          "name" => 'One-Room Plan',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Hall-and-Parlor',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Two-Room Plan',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Center Passage',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'I House',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Shotgun',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'L-Plan',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Modified L-Plan',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'T-Plan',
+          "weight" => 8,
+        ),
+        array(
+          "name" => 'U-Plan',
+          "weight" => 9,
+        ),
+        array(
+          "name" => 'E-Plan',
+          "weight" => 10,
+        ),
+        array(
+          "name" => 'H-Plan',
+          "weight" => 11,
+        ),
+        array(
+          "name" => 'Square Plan',
+          "weight" => 12,
+        ),
+        array(
+          "name" => 'Four-Square Plan',
+          "weight" => 13,
+        ),
+        array(
+          "name" => 'Saltbox Plan',
+          "weight" => 14,
+        ),
+        array(
+          "name" => 'Town House',
+          "weight" => 15,
+        ),
+        array(
+          "name" => 'Bungalow Plan',
+          "weight" => 16,
+        ),
+        array(
+          "name" => '5-Part (Central Block, Hyphens, Wings)',
+          "weight" => 17,
+        ),
+        array(
+          "name" => '3-Part (Central Block, Wings)',
+          "weight" => 18,
+        ),
+        array(
+          "name" => 'Dumbell Plan',
+          "weight" => 19,
+        ),
+        array(
+          "name" => 'Central Open Courtyard Plan',
+          "weight" => 20,
+        ),
+        array(
+          "name" => 'Central Enclosed Atrium Plan',
+          "weight" => 21,
+        ),
+        array(
+          "name" => 'Linear Plan',
+          "weight" => 22,
+        ),
+        array(
+          "name" => 'Open Loft Plan',
+          "weight" => 23,
+        ),
+        array(
+          "name" => 'Irregular Plan',
+          "weight" => 24,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_exterior_wall_material',
+      'human_name' => 'Values for Exterior Wall Material ',
+      'terms'  => array(
+        array(
+          "name" => 'Wood Shingle',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Board and Batten',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Horizonal Board',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Vertical Board',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Jacal',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Log',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'Tongue and Groove',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Cement Stucco',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'Cement Slurry',
+          "weight" => 8,
+        ),
+        array(
+          "name" => 'Cement Board',
+          "weight" => 9,
+        ),
+        array(
+          "name" => 'Aesbestos',
+          "weight" => 10,
+        ),
+        array(
+          "name" => 'Corregated Concrete Panel',
+          "weight" => 11,
+        ),
+        array(
+          "name" => 'Concrete Block',
+          "weight" => 12,
+        ),
+        array(
+          "name" => 'Cut Stone',
+          "weight" => 13,
+        ),
+        array(
+          "name" => 'Rubble Stone',
+          "weight" => 14,
+        ),
+        array(
+          "name" => 'Brick',
+          "weight" => 15,
+        ),
+        array(
+          "name" => 'Simulated Stone',
+          "weight" => 16,
+        ),
+        array(
+          "name" => 'Metal Panel',
+          "weight" => 17,
+        ),
+        array(
+          "name" => 'Terra Cotta',
+          "weight" => 18,
+        ),
+        array(
+          "name" => 'Porcelain Enamel Panels',
+          "weight" => 19,
+        ),
+        array(
+          "name" => 'Vinyl',
+          "weight" => 20,
+        ),
+        array(
+          "name" => 'Tar Paper',
+          "weight" => 21,
+        ),
+        array(
+          "name" => 'Plywood',
+          "weight" => 22,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_roof_material',
+      'human_name' => 'Values for Roof Material', 
+      'terms'  => array(
+        array(
+          "name" => 'Asphalt Composition Shingles',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Asbestos Shingles',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Metal Shingles',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Wood Shingles/Shakes',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Slate',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Ceramic Tile/Spanish Tile',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'Flat/Standing Seam Metal',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Corrugated Metal',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'Copper',
+          "weight" => 8,
+        ),
+        array(
+          "name" => 'Membrane/Built-Up',
+          "weight" => 9,
+        ),
+        array(
+          "name" => 'Thatch',
+          "weight" => 10,
+        ),
+      ),
+    ), */
+/*     array(
+      'machine_name' => 'value_window_material',
+      'human_name' => 'Values for Window Material',
+      'terms'  => array(
+        array(
+          "name" => 'Wood',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Steel',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Aluminum',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Vinyl',
+          "weight" => 3,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_porch_material',
+      'human_name' => 'Values for Porch Material',
+      'terms'  => array(
+        array(
+          "name" => 'Brick',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Metal',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Wood',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Stucco',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Stone',
+          "weight" => 4,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_structure_type',
+      'human_name' => 'Values for Structure Type',
+      'terms'  => array(
+        array(
+          "name" => 'Light Wood Platform Frame',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Light Wood Balloon Frame',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Heavy Timber Frame',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Steel Frame',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Concrete Block',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Site-Cast Concrete',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'Load-Bearing Brick',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Load-Bearing Cut Stone',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'Load-Bearing Rubble Stone',
+          "weight" => 8,
+        ),
+        array(
+          "name" => 'Adobe/Earthen',
+          "weight" => 9,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_roof_type',
+      'human_name' => 'Values for Roof Type',
+      'terms'  => array(
+        array(
+          "name" => 'Flat',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Shed',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Gable',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Saltbox Gable',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Cross Gable',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Hipped',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'Mansard/Gambrel',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Pyramidal',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'Barrel/Arched',
+          "weight" => 8,
+        ),
+        array(
+          "name" => 'Domed/Conical',
+          "weight" => 9,
+        ),
+      ),
+    ), */
+    /* array(    
+      'machine_name' => 'value_window_type',
+      'human_name' => 'Values for Window Type',
+      'terms'  => array(
+        array(
+          "name" => 'Fixed',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Casement',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Single Hung Sash',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Double Hung Sash',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Awning',
+          "weight" => 4,
+        ),
+        array(
+          "name" => 'Hopper',
+          "weight" => 5,
+        ),
+        array(
+          "name" => 'Sliding',
+          "weight" => 6,
+        ),
+        array(
+          "name" => 'Bay',
+          "weight" => 7,
+        ),
+        array(
+          "name" => 'Louvered/Jalousie',
+          "weight" => 8,
+        ),
+      ),
+    ), */
+    /* array(
+      'machine_name' => 'value_primary_entrance_feature',
+      'human_name' => 'Values for Primary Entrance Features',
+      'terms'  => array(
+        array(
+          "name" => "Single-door primary entrance",
+          "weight" => 0,
+        ),
+        array(
+          "name" => "Double-door primary entrance",
+          "weight" => 1,
+        ),
+        array(
+          "name" => "Glazing",
+          "weight" => 2,
+        ),
+        array(
+          "name" => "Transom",
+          "weight" => 3,
+        ),
+        array(
+          "name" => "Sidelights",
+          "weight" => 4,
+        ),
+      ),
+    ), */
+/*     array(   
+      'machine_name' => 'value_porch_type',
+      'human_name' => 'Values for Porch Type', 
+      'terms'  => array(
+        array(
+          "name" => 'Full Width',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Partial Width',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Independent',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Inset',
+          "weight" => 3,
+        ),
+        array(
+          "name" => 'Wraparound',
+          "weight" => 4,
+        ),
+      ),
+    ), */
+/*     array(
+      'machine_name' => 'value_porch_roof_type',
+      'human_name' => 'Values for Porch Roof Type',
+      'terms'  => array(
+        array(
+          "name" => 'Gable',
+          "weight" => 0,
+        ),
+        array(
+          "name" => 'Hipped',
+          "weight" => 1,
+        ),
+        array(
+          "name" => 'Flat',
+          "weight" => 2,
+        ),
+        array(
+          "name" => 'Shed',
+          "weight" => 3,
+        ),
+      ),
+    ), */
+    array(
+      'machine_name' => 'category_physical_description',
+      'human_name' => 'Categories for Physical Description',
+      'terms' => array( 
+        array(
+          "name" => 'Stories',
+          "weight" => 0,   
+        ),            
+        array(
+          "name" => 'Construction',
+          "weight" => 1,      
+          "terms" => array(
+            array(
+              "name" => 'Types',
+              "weight" => 0,
+              'terms'  => array(
+                array(
+                  "name" => 'Light Wood Frame',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Heavy Timber Frame',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Steel Frame',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Concrete Block',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Site-Cast Concrete',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'Load-Bearing Brick',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Load-Bearing Cut Stone',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'Load-Bearing Rubble Stone',
+                  "weight" => 8,
+                ),
+                array(
+                  "name" => 'Adobe/Earthen',
+                  "weight" => 9,
+                ),
+              ),
+            ),
+          ),
+        ),       
+        array(
+          "name" => 'External Wall',
+          "weight" => 2,   
+          "terms" => array(
+            array(
+              "name" => 'Materials',
+              "weight" => 0,   
+              'terms'  => array(
+                array(
+                  "name" => 'Wood Shingle',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Board and Batten',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Horizonal Board',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Vertical Board',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Jacal',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Log',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'Tongue and Groove',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Cement Stucco',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'Cement Slurry',
+                  "weight" => 8,
+                ),
+                array(
+                  "name" => 'Cement Board',
+                  "weight" => 9,
+                ),
+                array(
+                  "name" => 'Aesbestos',
+                  "weight" => 10,
+                ),
+                array(
+                  "name" => 'Corregated Concrete Panel',
+                  "weight" => 11,
+                ),
+                array(
+                  "name" => 'Concrete Block',
+                  "weight" => 12,
+                ),
+                array(
+                  "name" => 'Cut Stone',
+                  "weight" => 13,
+                ),
+                array(
+                  "name" => 'Rubble Stone',
+                  "weight" => 14,
+                ),
+                array(
+                  "name" => 'Brick',
+                  "weight" => 15,
+                ),
+                array(
+                  "name" => 'Simulated Stone',
+                  "weight" => 16,
+                ),
+                array(
+                  "name" => 'Metal Panel',
+                  "weight" => 17,
+                ),
+                array(
+                  "name" => 'Terra Cotta',
+                  "weight" => 18,
+                ),
+                array(
+                  "name" => 'Porcelain Enamel Panels',
+                  "weight" => 19,
+                ),
+                array(
+                  "name" => 'Vinyl',
+                  "weight" => 20,
+                ),
+                array(
+                  "name" => 'Tar Paper',
+                  "weight" => 21,
+                ),
+                array(
+                  "name" => 'Plywood',
+                  "weight" => 22,
+                ),
+              ),
+            ),
+          ),
+        ),       
+        array(
+          "name" => 'Plan',
+          "weight" => 3,    
+          "terms" => array(
+            array(
+              "name" => 'Types',
+              "weight" => 0,   
+              'terms'  => array(
+                array(
+                  "name" => 'One-Room Plan',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Hall-and-Parlor',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Two-Room Plan',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Center Passage',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'I House',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Shotgun',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'L-Plan',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Modified L-Plan',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'T-Plan',
+                  "weight" => 8,
+                ),
+                array(
+                  "name" => 'U-Plan',
+                  "weight" => 9,
+                ),
+                array(
+                  "name" => 'E-Plan',
+                  "weight" => 10,
+                ),
+                array(
+                  "name" => 'H-Plan',
+                  "weight" => 11,
+                ),
+                array(
+                  "name" => 'Square Plan',
+                  "weight" => 12,
+                ),
+                array(
+                  "name" => 'Four-Square Plan',
+                  "weight" => 13,
+                ),
+                array(
+                  "name" => 'Saltbox Plan',
+                  "weight" => 14,
+                ),
+                array(
+                  "name" => 'Town House',
+                  "weight" => 15,
+                ),
+                array(
+                  "name" => 'Bungalow Plan',
+                  "weight" => 16,
+                ),
+                array(
+                  "name" => '5-Part (Central Block, Hyphens, Wings)',
+                  "weight" => 17,
+                ),
+                array(
+                  "name" => '3-Part (Central Block, Wings)',
+                  "weight" => 18,
+                ),
+                array(
+                  "name" => 'Dumbell Plan',
+                  "weight" => 19,
+                ),
+                array(
+                  "name" => 'Central Open Courtyard Plan',
+                  "weight" => 20,
+                ),
+                array(
+                  "name" => 'Central Enclosed Atrium Plan',
+                  "weight" => 21,
+                ),
+                array(
+                  "name" => 'Linear Plan',
+                  "weight" => 22,
+                ),
+                array(
+                  "name" => 'Open Loft Plan',
+                  "weight" => 23,
+                ),
+                array(
+                  "name" => 'Irregular Plan',
+                  "weight" => 24,
+                ),
+              ),
+            ),
+          ),
+        ),       
+        array(
+          "name" => 'Roof',
+          "weight" => 4, 
+          "terms" => array(
+            array(
+              "name" => 'Types',
+              "weight" => 0,
+              'terms'  => array(
+                array(
+                  "name" => 'Flat',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Shed',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Gable',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Saltbox Gable',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Cross Gable',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Hipped',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'Mansard/Gambrel',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Pyramidal',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'Barrel/Arched',
+                  "weight" => 8,
+                ),
+                array(
+                  "name" => 'Domed/Conical',
+                  "weight" => 9,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Materials',
+              "weight" => 2,
+              'terms'  => array(
+                array(
+                  "name" => 'Asphalt Composition Shingles',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Asbestos Shingles',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Metal Shingles',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Wood Shingles/Shakes',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Slate',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Ceramic Tile/Spanish Tile',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'Flat/Standing Seam Metal',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Corrugated Metal',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'Copper',
+                  "weight" => 8,
+                ),
+                array(
+                  "name" => 'Membrane/Built-Up',
+                  "weight" => 9,
+                ),
+                array(
+                  "name" => 'Thatch',
+                  "weight" => 10,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Chimneys',
+              "weight" => 3,
+            ),
+            array(
+              "name" => 'Dormers',
+              "weight" => 4,
+            ),
+            array(
+              "name" => 'Cornice',
+              "weight" => 5,
+            ),
+            array(
+              "name" => 'Parapet',
+              "weight" => 6,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Primary Entrance',
+          "weight" => 5, 
+          "terms" => array(
+            array(
+              "name" => 'Materials',
+              "weight" => 2,
+            ),
+            array(
+              "name" => 'Features',
+              "weight" => 3,
+              'terms'  => array(
+                array(
+                  "name" => "Single-door",
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => "Double-door",
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => "Glazing",
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => "Transom",
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => "Sidelights",
+                  "weight" => 4,
+                ),
+              ),
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Window',
+          "weight" => 6, 
+          "terms" => array(
+            array(
+              "name" => 'Types',
+              "weight" => 0,
+              'terms'  => array(
+                array(
+                  "name" => 'Fixed',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Casement',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Single Hung Sash',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Double Hung Sash',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Awning',
+                  "weight" => 4,
+                ),
+                array(
+                  "name" => 'Hopper',
+                  "weight" => 5,
+                ),
+                array(
+                  "name" => 'Sliding',
+                  "weight" => 6,
+                ),
+                array(
+                  "name" => 'Bay',
+                  "weight" => 7,
+                ),
+                array(
+                  "name" => 'Louvered/Jalousie',
+                  "weight" => 8,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Materials',
+              "weight" => 2,
+              'terms'  => array(
+                array(
+                  "name" => 'Wood',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Steel',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Aluminum',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Vinyl',
+                  "weight" => 3,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Features',
+              "weight" => 3,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Porch',
+          "weight" => 7, 
+          "terms" => array(
+            array(
+              "name" => 'Types',
+              "weight" => 1,
+              'terms'  => array(
+                array(
+                  "name" => 'Full Width',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Partial Width',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Independent',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Inset',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Wraparound',
+                  "weight" => 4,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Materials',
+              "weight" => 2,
+              'terms'  => array(
+                array(
+                  "name" => 'Brick',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Metal',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Wood',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Stucco',
+                  "weight" => 3,
+                ),
+                array(
+                  "name" => 'Stone',
+                  "weight" => 4,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Roof',
+              "weight" => 3,
+              'terms'  => array(
+                array(
+                  "name" => 'Gable',
+                  "weight" => 0,
+                ),
+                array(
+                  "name" => 'Hipped',
+                  "weight" => 1,
+                ),
+                array(
+                  "name" => 'Flat',
+                  "weight" => 2,
+                ),
+                array(
+                  "name" => 'Shed',
+                  "weight" => 3,
+                ),
+              ),
+            ),
+            array(
+              "name" => 'Supports',
+              "weight" => 4,
+            ),
+            array(
+              "name" => 'Features',
+              "weight" => 5,
+            ),
+            array(
+              "name" => 'Steps/Stoop',
+              "weight" => 6,
+            ),
+          ),        
+        ),
+        array(
+          "name" => 'Chimneys',
+          "weight" => 8, 
+          "terms" => array(
+            array(
+              "name" => 'Location',
+              "weight" => 0,
+            ),
+            array(
+              "name" => 'Number',
+              "weight" => 1,
+            ),
+            array(
+              "name" => 'Materials',
+              "weight" => 2,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Associated Places',
+          "weight" => 9, 
+          "terms" => array(
+            array(
+              "name" => 'Outdoor Furnishings',
+              "weight" => 0,
+            ),
+            array(
+              "name" => 'Outdoor Decorative Objects',
+              "weight" => 1,
+            ),
+            array(
+              "name" => 'Outbuildings',
+              "weight" => 2,
+            ),
+            array(
+              "name" => 'Wells',
+              "weight" => 3,
+            ),
+            array(
+              "name" => 'Cisterns',
+              "weight" => 4,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Landscape',
+          "weight" => 10, 
+          "terms" => array(
+            array(
+              "name" => 'Topography',
+              "weight" => 0,
+            ),
+            array(
+              "name" => 'Water Features',
+              "weight" => 1,
+            ),
+            array(
+              "name" => 'Terracing',
+              "weight" => 2,
+            ),
+            array(
+              "name" => 'Rock Formations',
+              "weight" => 3,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Access',
+          "weight" => 11, 
+          "terms" => array(
+            array(
+              "name" => 'Roads',
+              "weight" => 0,
+            ),
+            array(
+              "name" => 'Driveways',
+              "weight" => 1,
+            ),
+            array(
+              "name" => 'Gates',
+              "weight" => 2,
+            ),
+            array(
+              "name" => 'Fences',
+              "weight" => 3,
+            ),
+            array(
+              "name" => 'Sidewalks',
+              "weight" => 4,
+            ),
+            array(
+              "name" => 'Walls',
+              "weight" => 5,
+            ),
+            array(
+              "name" => 'Trails',
+              "weight" => 6,
+            ),
+            array(
+              "name" => 'Parking',
+              "weight" => 7,
+            ),
+          ),
+        ),
+        array(
+          "name" => 'Plantings',
+          "weight" => 12, 
+          "terms" => array(
+            array(
+              "name" => 'Gardens',
+              "weight" => 0,
+            ),
+            array(
+              "name" => 'Lawns',
+              "weight" => 1,
+            ),
+            array(
+              "name" => 'Trees',
+              "weight" => 2,
+            ),
+            array(
+              "name" => 'Flower Plantings',
+              "weight" => 3,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+

@@ -1,0 +1,11 @@
+name = HistoricalSurvey Fields Module
+description = Custom fields and terms
+core = 7.x
+package = HistoricalSurvey
+dependencies[] = image
+;dependencies[] = geofield
+dependencies[] = node_reference
+
+;project = historicalsurvey_fields
+;version = 7.x-1.0
+;project status url = http://historicalsurvey.org/drupal-updates/release-history

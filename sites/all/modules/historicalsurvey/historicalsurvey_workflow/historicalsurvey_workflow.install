@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install file for HistoricalSurvey Workbench
+ *
+ */
+
+/**
+ * Implements hook_install().
+ */
+function historicalsurvey_workflow_install() { }
+/**
+ * Implements hook_uninstall().
+ */
+function historicalsurvey_workflow_uninstall() { }

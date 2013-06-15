@@ -1,0 +1,142 @@
+body{
+  background-color:#eee;
+}
+
+#historicalsurvey-search-search-form .form-item{
+  margin:0
+}
+
+#historicalsurvey-search-search-form #search-form-wrapper{
+  outline: 1px solid #CCC;
+  background-color: white;
+  clear:both;
+}
+
+#historicalsurvey-search-search-form .search-form-cell{  
+
+}
+
+#historicalsurvey-search-search-form .search-form-cell.whole{  
+  height:240px;
+  margin-top:10px;
+  margin-bottom:10px;
+}
+#historicalsurvey-search-search-form .search-form-cell.half{  
+  height:110px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+#historicalsurvey-search-search-form #search-form-header{
+  font-size:1.7em;
+  padding-top:17px;
+  font-weight:bold;
+}
+
+#historicalsurvey-search-search-form .search-title{
+  height:15px;
+  background-color:#ddd;
+  padding:10px;
+  font-size:1.2em
+}
+
+#historicalsurvey-search-search-form .search-field{
+  padding:10px;
+}
+
+#historicalsurvey-search-search-form .help-text{
+  padding:0 10px;
+  font-size:90%
+}
+
+#historicalsurvey-search-search-form .form-type-textfield label{
+  padding:0 0 5px 0;
+  font-size:90%
+}
+
+#historicalsurvey-search-search-form .form-type-textfield input{
+  height:30px;
+  width: 95%;
+  font-size: 1.2em;
+  padding-left:10px;
+  color:#999; 
+}
+
+#historicalsurvey-search-search-form select{
+  height:35px;
+  width: 95%;
+  font-size: 1.2em;
+  padding-left:10px;
+  color:#999; 
+}
+
+#historicalsurvey-search-search-form .form-checkboxes div{
+  display:inline;
+  margin-right:10px;
+}
+
+
+/*field specific*/
+#historicalsurvey-search-search-form #edit-keys-field-use-options,
+#historicalsurvey-search-search-form #edit-keys-field-name-options{
+ padding-top:0px;
+}
+#historicalsurvey-search-search-form .form-type-textfield,
+#historicalsurvey-search-search-form .form-type-select{
+ padding-top:8px;
+}
+#historicalsurvey-search-search-form .form-item-keys-field-use-text,
+#historicalsurvey-search-search-form .form-item-keys-field-style-text{
+ padding-top:15px;
+}
+
+
+#historicalsurvey-search-search-form #search-narrative-select .form-item{
+  width: 140px;
+  float: left; 
+  font-size:90%;
+  margin-right:0;
+  margin-bottom:0
+ }
+ 
+#historicalsurvey-search-search-form #edit-keys-field-construction-year input{
+  width:80px;
+ }
+#historicalsurvey-search-search-form #edit-keys-field-construction-year label{
+  width:70px;  
+  margin-left:5px;
+  margin-right:5px;
+ }
+#historicalsurvey-search-search-form #edit-keys-field-construction-year .form-item,
+#historicalsurvey-search-search-form #edit-keys-field-construction-year input,
+#historicalsurvey-search-search-form #edit-keys-field-construction-year label{
+  display:inline;
+ }
+
+/*submit buttons*/
+
+
+#historicalsurvey-search-search-form #search-submit-wrapper{  
+  margin-top: 10px;
+}
+#historicalsurvey-search-search-form #search-button-wrapper{  
+  float: right;
+}
+#historicalsurvey-search-search-form #search-options-wrapper{  
+  float: left;
+}
+#historicalsurvey-search-search-form #search-button-wrapper input{  
+  margin-right: 20px;
+  margin-bottom:20px;
+  padding:10px;
+  font-size:1em;
+  font-weight:bold;
+  background-color:darkblue;
+  color:white;
+  border:none
+}
+
+#historicalsurvey-search-search-form #search-form-row1{  
+  height:50px;
+  margin-top:10px;
+}

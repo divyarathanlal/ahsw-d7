@@ -1,0 +1,12 @@
+name = HistoricalSurvey Workflow
+description = Custom Workflow functions
+core = 7.x
+package = HistoricalSurvey
+dependencies[] = workbench_moderation
+dependencies[] = historicalsurvey_place
+dependencies[] = content_lock
+dependencies[] = diff
+
+;project = historicalsurvey_workflow
+;version = 7.x-1.0
+;project status url = http://historicalsurvey.org/drupal-updates/release-history 

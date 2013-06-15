@@ -1,0 +1,402 @@
+<?php
+
+
+
+/**
+ * Implements hook_permission().
+ */
+/* function historicalsurvey_maps_permission() {
+  return array(
+    'access historicalsurvey maps' => array(
+      'title' => 'View the historicalsurvey maps',
+    ),
+  );
+}
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function historicalsurvey_maps_menu() {
+  $items = array();
+
+  $items['map'] = array(
+    'page callback' => 'historicalsurvey_maps_page',
+    'access arguments' => array('access content'),
+    //'access arguments' => array('access historicalsurvey maps'),
+  );
+  $items['map-front'] = array(
+    'page callback' => 'historicalsurvey_maps_page',
+    'access arguments' => array('access content'),
+    //'access arguments' => array('access historicalsurvey maps'),
+  );
+  return $items;
+}
+
+/**
+ *  Page callbakc to show map page
+ */
+function historicalsurvey_maps_page() {
+
+  $mappage = array(
+    '#theme' => 'historicalsurvey_maps_page',
+    '#map' => array(
+      '#theme' => 'historicalsurvey_map',
+      '#viewmode' => 'main',
+    ),
+  );
+  return drupal_render($mappage);
+}
+
+
+/**
+ * Implements hook_theme().
+ * Defines themes for map elements
+ */
+function historicalsurvey_maps_theme($existing, $type, $theme, $path) {
+  return array(
+    'historicalsurvey_map' => array(
+      'variables' => array(
+        'viewmode' => 'main', // main, mini, create, search
+        'redpins' => array(),
+      ),
+    ),
+    'historicalsurvey_maps_infowindow' => array(
+      'variables' => array(
+        'location' => array(),
+      ),
+    ),
+    'historicalsurvey_maps_page' => array(
+      'template' => 'historicalsurvey-maps-page',
+      'variables' => array(
+        'map' => array(),
+      ),
+    ),
+  );
+}
+
+
+function historicalsurvey_maps_preprocess_historicalsurvey_maps_page(&$variables) {
+
+}
+
+/**
+ *  Implements the moduleName_preprocess_hook() theme preprocessor
+ */
+function historicalsurvey_maps_preprocess_historicalsurvey_maps_infowindow(&$variables) {
+  $infowindow_data = $variables['infowindow_data'];  
+  
+  if(!empty($infowindow_data['place_type'][2])){
+    $term=taxonomy_term_load($infowindow_data['place_type'][2]);
+    $variables['place_type']=$term->name;
+  }
+  elseif(!empty($infowindow_data['place_type'][1])) {
+    $term=taxonomy_term_load($infowindow_data['place_type'][1]);
+    $variables['place_type']=$term->name;
+  }
+  elseif(!empty($infowindow_data['place_type'][0])) {
+    $term=taxonomy_term_load($infowindow_data['place_type'][0]);
+    $variables['place_type']=$term->name;
+  }
+  else {
+    $variables['place_type']='';
+  }
+  
+  if(!empty($infowindow_data['name_current'][2])){
+    $variables['name_current']=$infowindow_data['name_current'][2];
+  }
+  elseif(!empty($infowindow_data['name_current'][1])) {
+    $variables['name_current']=$infowindow_data['name_current'][1];
+  }
+  elseif(!empty($infowindow_data['name_current'][0])) {
+    $variables['name_current']=$infowindow_data['name_current'][0];
+  }
+  else {
+    $variables['name_current']='';
+  }   
+  if (isset($infowindow_data['photo_uri']) && !empty($infowindow_data['photo_uri'])) {    
+    
+    $variables['photo_variables'] = array(
+      'style_name' => 'thumbnail',
+      'path' => $infowindow_data['photo_uri'],
+      'prefix' => '<div class="photo">',
+      'suffix' => '</div>',
+    );
+  }
+}
+
+
+function theme_historicalsurvey_maps_infowindow($variables) {
+  $html = '';
+  $html .= '<div class="infowindow" id="infowindow-' . $variables['location']['nid'] . '">';
+  
+  //temp fix for making the maps load faster
+  unset($variables['photo_variables']);
+  
+  if (isset($variables['photo_variables'])) {
+    $html .= l(theme('image_style',$variables['photo_variables']), 'node/' . $variables['location']['nid'], array('html' => TRUE));
+  }
+  else {
+    $html .= l('<div class="photo empty"><span>no image</span></div>', 'node/' . $variables['location']['nid'], array('html' => TRUE));
+  }
+  $location = '';
+  if (!empty($variables['location']['location'])) {
+    $location = $variables['location']['location'];
+  }
+  elseif (!empty($variables['location']['Match_addr'])) {
+    $location = $variables['location']['Match_addr'];
+  }
+
+  $type = !empty($variables['place_type']) ? '<div class="type">' . $variables['place_type'] . '</div>' : '';
+  $location = !empty($location) ? '<div class="location">' . $location . '</div>' : '';
+
+  if (empty($location) && empty($name) && empty($name)) {
+    $html .= '<div class="empty"><em>There is no info about this place yet</em></div>';
+  }
+  else {
+    $html .= '<div class="info">' . $type . $location . '</div>';
+  }
+
+  $html .= !empty($variables['name_current']) ? '<div class="name">' . $variables['name_current'] . '</div>' : '';
+  
+/*   $html .= '<div class="link">';
+  $html .= '<em><small>data temporarily unavailable...</small></em>';
+  $html .= l('View This Place', 'node/' . $variables['location']['nid']);
+  $html .= '</div>'; //link */
+  
+  $html .= '</div>'; //infowindow
+  
+
+
+  return $html;
+}
+
+
+/**
+ *  Preprocessor to set up map, pins, translate the variables for js
+ */
+function historicalsurvey_maps_preprocess_historicalsurvey_map(&$variables) {
+
+  historicalsurvey_maps_initialize_map();
+
+  //default to center of austin, should be no use for this except if somehow there are no pins
+  $settings = array(
+    'lat' => historicalsurvey_maps_get_default_center('lat'),
+    'lng' => historicalsurvey_maps_get_default_center('lng'),
+    'zoom' => 14,
+  );
+  //dw($variables['redpins']);
+  $pins = historicalsurvey_maps_get_pins($variables['redpins'],$variables['viewmode']);
+  $settings['redpins'] = $pins['red'];
+  $settings['ghostpins'] = $pins['ghost'];
+  $settings['viewmode'] = $variables['viewmode'];
+
+  drupal_add_js($settings, 'setting');
+
+}
+
+
+function historicalsurvey_maps_initialize_map() {
+
+  $element = array(
+    '#tag' => 'meta',
+    '#attributes' => array(
+      'name' => 'viewport',
+      'content' => 'initial-scale=1.0, user-scalable=no',
+    ),
+  );
+  drupal_add_html_head($element, 'google_maps_meta');
+  drupal_add_css(drupal_get_path('module', 'historicalsurvey_maps') . '/historicalsurvey_maps.css');
+
+  $query = array(
+    //'key' => variable_get('historicalsurvey_maps_google_maps_api_key'),
+    'key' => 'AIzaSyCRR_lu-1ROSu6G7mRgsm7Lg2lw-1wPEzo',
+    'sensor' => 'false',
+  );
+  $google_maps_api_url = (url('http://maps.google.com/maps/api/js', array('query' => $query)));
+  drupal_add_js($google_maps_api_url);
+  drupal_add_js(drupal_get_path('module', 'historicalsurvey_maps') . '/js/historicalsurvey_maps.js');
+  drupal_add_js(drupal_get_path('module', 'historicalsurvey_maps') . '/js/infobox.js');
+}
+
+function historicalsurvey_maps_get_default_center($lat_or_lng) {
+  if ($lat_or_lng == 'lat') {
+    return '30.267156';
+  }
+  elseif ($lat_or_lng == 'lng') {
+    return '-97.743064';
+  }
+}
+
+/* Returns all current pins, minus any pins passed into subtract */
+/* If $viewmode is 'mini' there is only one redpin (for the place record), so no infowindows */
+function historicalsurvey_maps_get_pins($pins_to_subtract = array(),$viewmode='main') {
+
+  $pins['red'] = $pins['ghost'] = $nids = array();  
+  $pincolor = empty($pins_to_subtract) ? 'red' : 'ghost';
+  
+  $results = db_query("SELECT nid FROM workbench_moderation_node_history WHERE published=1 AND current=1");
+
+  foreach ($results as $result) {
+    $nids[$result->nid]=$result->nid;
+  }  
+
+  if(!empty($nids)) {
+    
+    if($viewmode=='mini') {      
+      $geolimits['min_y']=$pins_to_subtract[0]['lat']-0.0015;
+      $geolimits['max_y']=$pins_to_subtract[0]['lat']+0.0015;
+      $geolimits['min_x']=$pins_to_subtract[0]['lng']-0.0015;
+      $geolimits['max_x']=$pins_to_subtract[0]['lng']+0.0015;
+      
+      $data = historicalsurvey_maps_get_data($nids,$geolimits);
+    }
+    else{
+      $data = historicalsurvey_maps_get_data($nids);
+    }
+    foreach ($data['locations'] as $nid=>$location) {
+      $skip = FALSE;
+      
+      foreach ($pins_to_subtract as $pin) {
+        if ($location['lat'] == $pin['lat'] && $location['lng'] == $pin['lng']) {
+          $skip = TRUE;
+        }
+      }
+      if (!$skip) {
+        $pins[$pincolor][] = array(
+          'lat' => $location['lat'],
+          'lng' => $location['lng'],
+          'content' => theme('historicalsurvey_maps_infowindow', array(
+            'location' => $location, 
+            'infowindow_data' => $data['infowindows'][$nid],
+          )),
+        );
+        if($viewmode!='mini') {
+          
+        }
+        
+      }
+    }
+    foreach ($pins_to_subtract as $pin) {
+      $pins['red'][] = array(
+        'lat' => $pin['lat'],
+        'lng' => $pin['lng'],
+        'content' => isset($pin['location']) ? theme('historicalsurvey_maps_infowindow', array(
+          'location' => $pin['location'],
+          'infowindow_data' => $data['infowindows'][$pin['location']['nid']],
+        )):'',
+      );
+    }
+  //allow us to add a point when there are none yet
+  }elseif($viewmode=='create') { 
+    foreach ($pins_to_subtract as $pin) {
+      $pins['red'][] = array(
+        'lat' => $pin['lat'],
+        'lng' => $pin['lng'],
+        'content' => isset($pin['location']) ? theme('historicalsurvey_maps_infowindow', array(
+          'location' => $pin['location'],
+          'infowindow_data' => $data['infowindows'][$pin['location']['nid']],
+        )):'',
+      );
+    }
+  }
+  return $pins;
+}
+
+
+function historicalsurvey_maps_get_locations($nids) {
+
+  $query="SELECT entity_id nid, field_location_y y, field_location_x x, field_location_location location, field_location_Match_addr Match_addr FROM field_revision_field_location WHERE entity_id IN (:nids)";
+
+  $result = db_query($query,array(':nids'=>$nids));
+  foreach ($result as $record) {
+    $locations[$record->nid] = array(
+      'nid' => $record->nid,
+      'lat' => $record->y,
+      'lng' => $record->x,
+      'location' => $record->location,
+      'Match_addr' => $record->Match_addr,
+    );
+  }
+  return $locations;
+}
+
+
+function historicalsurvey_maps_get_data($nids,$geolimits=FALSE) {
+
+    $query="
+    SELECT n.nid,
+    p1.field_place_type_1_tid tid1, 
+    p2.field_place_type_2_tid tid2, 
+    p3.field_place_type_3_tid tid3,
+    c1.field_name_current_1_value name1,
+    c2.field_name_current_2_value name2,
+    c3.field_name_current_3_value name3, 
+    files.uri uri,
+    loc.field_location_y y,
+    loc.field_location_x x,
+    loc.field_location_location location,
+    loc.field_location_Match_addr Match_addr
+    
+    FROM node n
+    LEFT JOIN field_revision_field_location loc ON (n.nid=loc.entity_id)
+    LEFT JOIN field_revision_field_place_type_1 p1 ON (p1.entity_id=n.nid)
+    LEFT JOIN field_revision_field_place_type_2 p2 ON (p2.entity_id=n.nid)
+    LEFT JOIN field_revision_field_place_type_3 p3 ON (p3.entity_id=n.nid)
+    LEFT JOIN field_revision_field_name_current_1 c1 ON (c1.entity_id=n.nid)
+    LEFT JOIN field_revision_field_name_current_2 c2 ON (c2.entity_id=n.nid)
+    LEFT JOIN field_revision_field_name_current_3 c3 ON (c3.entity_id=n.nid)
+    LEFT JOIN field_revision_field_photo ph ON (ph.entity_id=n.nid)
+    LEFT JOIN file_managed files ON (ph.field_photo_fid=files.fid) 
+    
+    WHERE n.nid IN (:nids)
+    ";
+    
+    if($geolimits) {
+      $query.="   
+      AND loc.field_location_y BETWEEN ".$geolimits['min_y']." AND ".$geolimits['max_y']."
+      AND loc.field_location_x BETWEEN ".$geolimits['min_x']." AND ".$geolimits['max_x']."
+      ";
+    }
+    
+    $query.="    
+      ORDER BY loc.revision_id DESC,p1.revision_id DESC,p2.revision_id DESC,p3.revision_id DESC,
+      c1.revision_id DESC,c2.revision_id DESC,c3.revision_id DESC,ph.revision_id DESC
+      
+    ";
+    $result = db_query($query,array(':nids'=>$nids));
+
+    foreach ($result as $record) {
+      $data['infowindows'][$record->nid] = array(
+        'nid' => $record->nid,
+        'place_type' => array($record->tid1,$record->tid2,$record->tid3),
+        'name_current' => array(strip_tags($record->name1),strip_tags($record->name2),strip_tags($record->name3)),
+        'photo_uri' => $record->uri,
+        );
+      $data['locations'][$record->nid] = array(
+        'nid' => $record->nid,
+        'lat' => $record->y,
+        'lng' => $record->x,
+        'location' => $record->location,
+        'Match_addr' => $record->Match_addr,
+      );
+    }
+  return $data;
+}
+
+
+// slow function...
+/* function historicalsurvey_maps_get_location($nid) {
+  $field = field_view_field('node', node_load($nid), 'field_location');
+  $key1 = key($field['#items']['revisions']);
+  $key2 = key($field['#items']['revisions'][$key1]);
+  $array = $field['#items']['revisions'][$key1][$key2];
+  return array('nid' => $nid, 'lat' => $array['y'], 'lng' => $array['x'], 'location' => $array['location'], 'Match_addr' => $array['Match_addr']);
+} */
+
+
+function theme_historicalsurvey_map($variables) {
+  return '<div id="map-wrapper"><div id="map-canvas" style="width:100%; height:100%"></div></div>';
+}
+
+

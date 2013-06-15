@@ -1,0 +1,1205 @@
+<?php
+
+include_once('historicalsurvey_fields.theme.inc');
+include_once('historicalsurvey_fields.widgets.inc');
+include_once('historicalsurvey_fields.formatters.inc');
+
+/**
+ *  @file
+ *  HistoricalSurvey Fields module
+ *  
+ *  Creates custom field types, along with their schemas, widgets, formatters, and validation logic    
+ * 
+ */
+
+
+/**
+ *  Implements hook_field_info().
+ */
+function historicalsurvey_fields_field_info(){
+  
+  $image_info=image_field_info();
+  $file_info=file_field_info();
+
+  return array(
+    'historicalsurvey_location' => array(
+      'label'=>"HistoricalSurvey Location",
+      'description'=>t("Custom field for storing City of Austin address data"),
+      'settings'=>array(),
+      'instance_settings'=>array(),
+      'default_widget'=>'historicalsurvey_location_widget',
+      'default_formatter'=>'historicalsurvey_location_formatter',
+    ),
+    'historicalsurvey_construction_year' => array(
+      'label'=>"HistoricalSurvey Construction Year",
+      'description'=>t("Custom field for storing construction years"),
+      'settings'=>array(),
+      'instance_settings'=>array(),
+      'default_widget'=>'historicalsurvey_construction_year_widget',
+      'default_formatter'=>'historicalsurvey_construction_year_formatter',
+    ),
+    'historicalsurvey_term_reference' => array(
+      'label'=>"HistoricalSurvey Term Reference",
+      'description'=>t("Custom field for storing term references"),
+      'default_widget' => 'historicalsurvey_term_reference_widget',
+      'default_formatter' => 'historicalsurvey_term_reference_formatter',
+      'settings' => array(
+        'allowed_values' => array(
+          array(
+            'vocabulary' => '',
+            'parent' => '0',  
+          ),
+        ),
+        'max_length'=> '',
+      ),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_CUSTOM,
+      ),
+    ),
+    'historicalsurvey_text' => array(
+      'label'=>"HistoricalSurvey Text",
+      'description'=>t("Custom field for storing text and sub-fields if applicable"),
+      'settings' => array(
+        'rows' => '',
+        'max_length'=> '',
+      ),
+      'instance_settings'=>array(),
+      'default_widget'=>'historicalsurvey_text_widget',
+      'default_formatter'=>'historicalsurvey_text_formatter',
+      'property_type' => 'text'
+    ),/* 
+    'historicalsurvey_text_type' => array(
+      'label'=>"HistoricalSurvey Text",
+      'description'=>t("Custom field for storing text and sub-fields if applicable"),
+      'settings' => array(
+        'rows' => '',
+        'max_length'=> '',
+      ),
+      'instance_settings'=>array(),
+      'default_widget'=>'historicalsurvey_text_type_widget',
+      'default_formatter'=>'historicalsurvey_text_type_formatter',
+      'property_type' => 'text'
+    ), */
+    'historicalsurvey_node_reference' => array(    
+      'label'=>"HistoricalSurvey Node Reference",
+      'description'=>t("Custom field for storing node references"),
+      'default_widget' => 'historicalsurvey_node_reference_widget',
+      'default_formatter' => 'historicalsurvey_node_reference_formatter',
+      'settings' => array(
+        'referenceable_types' => array(),
+        'view' => array(
+          'view_name' => "",
+          'display_name' => "",
+          'args' => array(),
+        ),
+      ),
+    ),
+    'historicalsurvey_photo' => array(
+      'label' => "HistoricalSurvey Photo",      
+      'description'=>t("Custom field for storing photos"),      
+      'default_widget' => 'historicalsurvey_photo_widget',
+      'default_formatter' => 'historicalsurvey_photo_formatter',      
+      'settings' => $image_info['image']['settings'],
+      'instance_settings' => $image_info['image']['instance_settings'],
+    ),
+    'historicalsurvey_document' => array(
+      'label' => "HistoricalSurvey Document",      
+      'description'=>t("Custom field for storing documents"),     
+      'default_widget' => 'historicalsurvey_document_widget',
+      'default_formatter' => 'historicalsurvey_document_formatter',      
+      'settings' => $file_info['file']['settings'],
+      'instance_settings' => $file_info['file']['instance_settings'],
+    ),
+  );
+}
+
+/*
+ *  Implements hook_field_info_alter().
+ */
+function historicalsurvey_fields_field_info_alter(&$info){
+  $info['taxonomy_term_reference']['default_formatter'] ='historicalsurvey_term_reference_formatter';
+}
+
+
+/*
+ *  Implements hook_field_schema().
+ */
+function historicalsurvey_fields_field_schema($field){
+    
+  $has_review=FALSE;
+  $has_changed=TRUE;
+  $has_replaced=TRUE;
+  $has_notes=TRUE;
+  if($field['type']=='historicalsurvey_location'){
+    
+    // column names taken from City of Austin GIS address schema
+    $schema['columns']['location'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "User-submitted address or location description",
+    );
+    $schema['columns']['Match_addr'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['HouseNum'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['HouseNumFrac'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['PreDir'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['PreType'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['StreetName'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['StreetType'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['SufDir'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['Ref_ID'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['Jurisdiction'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field, converted to the jurisdiction name",
+    );
+    $schema['columns']['x'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+    $schema['columns']['y'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => "City Of Austin GIS Address Field",
+    );
+  }elseif($field['type']=='historicalsurvey_construction_year'){
+    $schema['columns']['actual_early_year'] = array(
+      'type' => 'int',
+      'length' => 4,
+      'description' => "Four digit year",
+      'not null' => FALSE,
+      'default' => NULL,
+    );
+    $schema['columns']['actual_late_year'] = array(
+      'type' => 'int',
+      'length' => 4,      
+      'description' => "Four digit year",
+      'not null' => FALSE,
+      'default' => NULL,
+    );
+    $schema['columns']['estimated_early_year'] = array(
+      'type' => 'int',
+      'length' => 4,
+      'description' => "Four digit year",
+      'not null' => FALSE,
+      'default' => NULL,
+    );
+    $schema['columns']['estimated_late_year'] = array(
+      'type' => 'int',
+      'length' => 4,
+      'description' => "Four digit year",
+      'not null' => FALSE,
+      'default' => NULL,
+    );
+    $has_review=TRUE;
+  }elseif($field['type']=='historicalsurvey_term_reference'){
+    
+    // load the normal taxonomy field schema as a base
+    module_load_install('taxonomy');     
+    $schema=(array) module_invoke('taxonomy', 'field_schema', $field);   
+    foreach($schema['columns'] as $column =>$array){
+      $schema['columns'][$column]['default']=NULL;
+    }
+    
+    if(!in_array($field['field_name'],array('field_tag','field_survey_effort_tag'))){
+      $has_review=TRUE;
+    }
+    else {    
+      $has_notes=FALSE;
+      $has_replaced=FALSE;
+    }
+    if(strpos($field['field_name'],'designation')){
+      $has_review=FALSE;
+      $has_replaced=FALSE;
+      $has_notes=FALSE;
+    }
+  }elseif($field['type']=='historicalsurvey_text'){
+    
+    // load the normal text field schema as a base
+    $field['type']='text_long';    
+    module_load_install('text');
+    $schema=(array) module_invoke('text', 'field_schema', $field);
+    foreach($schema['columns'] as $column =>$array){
+      $schema['columns'][$column]['default']=NULL;
+    }
+    if(!in_array($field['field_name'],array('field_reference'))){$has_review=TRUE;}
+/*   }elseif($field['type']=='historicalsurvey_text_type'){
+    
+    // load the normal text field schema as a base
+    $field['type']='text_long';    
+    module_load_install('text');
+    $schema=(array) module_invoke('text', 'field_schema', $field);
+    $schema['columns']['type'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'default' => NULL,
+      'description' => 'Description Sub-Field',
+    );
+    foreach($schema['columns'] as $column =>$array){
+      $schema['columns'][$column]['default']=NULL;
+    }
+    $has_review=TRUE; */
+  }elseif($field['type']=='historicalsurvey_node_reference'){
+    
+    // load the normal node reference field schema as a base
+    module_load_install('node_reference');
+    $schema=(array) module_invoke('node_reference', 'field_schema', $field);  
+    foreach($schema['columns'] as $column =>$array){
+      $schema['columns'][$column]['default']=NULL;
+    }
+    
+  }elseif($field['type']=='historicalsurvey_user_reference'){
+    
+    // load the normal user reference field schema as a base
+    module_load_install('user_reference');
+    $schema=(array) module_invoke('user_reference', 'field_schema', $field);  
+    foreach($schema['columns'] as $column =>$array){
+      $schema['columns'][$column]['default']=NULL;
+    }
+    
+  } elseif($field['type']=='historicalsurvey_photo'){
+    
+    // load the normal image field schema as a base
+    module_load_install('image');
+    $schema=(array) module_invoke('image', 'field_schema', $field);  
+    foreach($schema['columns'] as $column =>$array){
+      if(isset($array['not null']) && !$array['not null']){
+        $schema['columns'][$column]['default']=NULL;
+      }
+    }
+    $schema['columns']['description'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'default' => NULL
+    );
+    $schema['columns']['main_image'] = array(
+      'type' => 'int',    
+      'size' => 'tiny',
+      'default' => 0,
+      'not null' => TRUE,
+      'description' => "A boolean indicating whether the image is the main/front image.",
+    );  
+    $has_replaced=FALSE;
+    $has_notes=FALSE;
+  }elseif($field['type']=='historicalsurvey_document'){
+    
+    // load the normal file field schema as a base
+    module_load_install('file');
+    $schema=(array) module_invoke('file', 'field_schema', $field);  
+    foreach($schema['columns'] as $column =>$array){
+      if(isset($array['not null']) && !$array['not null']){
+        $schema['columns'][$column]['default']=NULL;
+      }
+    }
+    $schema['columns']['description'] = array(
+      'type' => 'varchar',
+      'length' => 255,
+      'default' => NULL
+    );
+    $has_replaced=FALSE;
+    $has_notes=FALSE;
+  }
+
+  // insert common columns  
+  if($has_changed) {
+    $schema['columns']['changed'] = array(
+      'type' => 'int',    
+      'size' => 'tiny',
+      'default' => 0,
+      'not null' => TRUE,
+      'description' => "A boolean indicating whether the field's value changed from the previous revision. This should always be TRUE (1).  Kept for debugging purposes.",
+    );
+  }
+  if($has_replaced) {
+    $schema['columns']['replaced'] = array(
+      'type' => 'int',    
+      'size' => 'tiny',
+      'default' => 0,
+      'not null' => TRUE,
+      'description' => "A boolean indicating whether the field's value was replaced (1) or simply editted (0). Used to determine potential multiple authors for a field.",
+    );
+  }
+  if($has_notes) {
+    $schema['columns']['notes'] = array(
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'default' => NULL,
+    );
+  }
+  if($has_review){ 
+    $schema['columns']['promoted_to_field_id'] = array(
+      'type' => 'int',     
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'description' => "Field_id of field entry to where this data was promoted",
+      'default' => 0,
+    );
+    $schema['columns']['promoted_to_revision_id'] = array(
+      'type' => 'int',     
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'description' => "Revision_id of field entry to where this data was promoted",
+      'default' => 0,
+    );
+    $schema['columns']['promoted_by'] = array(
+      'type' => 'int',     
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'description' => "UID of user who promoted this field to a higher level",
+      'default' => 0,
+    );
+    $schema['foreign keys']=array(
+      'promoted_to_field_id'=>array(
+        'table' => 'field_config',
+        'columns' => array('promoted_to_field_id' => 'id'),      
+      ),
+      'promoted_to_revision_id'=>array(
+        'table' => 'node_revision',
+        'columns' => array('promoted_to_revision_id' => 'vid'),      
+      ),
+      'promoted_by'=>array(
+        'table' => 'users',
+        'columns' => array('promoted_by' => 'uid'),      
+      ),
+    );
+  }
+  return $schema;
+}
+
+
+/**
+ *  Implements hook_field_settings_form().
+ *  
+ *  @todo Add more configuration
+ */
+function historicalsurvey_fields_field_settings_form($field, $instance, $has_data) {
+  if($field['type']=='historicalsurvey_term_reference'){
+    $vocabularies = taxonomy_get_vocabularies();
+    $options = array();
+    foreach ($vocabularies as $vocabulary) {
+      $options[$vocabulary->machine_name] = $vocabulary->name;
+    }      
+    $form['vocabulary'] = array(
+      '#type' => 'select',
+      '#title' => t('Vocabulary'),
+      '#default_value' => isset($field['settings']['vocabulary'])?$field['settings']['vocabulary']:NULL,
+      '#options' => $options,
+      '#required' => TRUE,
+      '#description' => t('The vocabulary which supplies the options for this field.'),
+      '#disabled' => $has_data,
+    );
+    return $form;
+  }elseif($field['type']=='historicalsurvey_text' /* || $field['type']=='historicalsurvey_text_type' */){
+    $form['rows'] = array(
+      '#type' => 'select',
+      '#title' => t('Number of Rows'),        
+      '#default_value' => isset($field['settings']['rows'])?$field['settings']['rows']:1,
+      '#required' => TRUE,
+      '#options' => array(1=>1,2=>2,3=>3,4=>4,5=>5,6=>6,7=>7,8=>8,9=>9,10=>10),        
+      '#description' => t('The number of rows for the textarea.'),
+    );   
+    return $form;
+  }elseif($field['type']=='historicalsurvey_photo' || $field['type']=='historicalsurvey_document'){
+    $defaults = field_info_field_settings($field['type']);
+    $settings = array_merge($defaults, $field['settings']);
+
+    $scheme_options = array();
+    foreach (file_get_stream_wrappers(STREAM_WRAPPERS_WRITE_VISIBLE) as $scheme => $stream_wrapper) {
+      $scheme_options[$scheme] = $stream_wrapper['name'];
+    }
+    
+    $form = file_field_instance_settings_form($field, $instance);
+    unset($form['description_field']);
+    
+    $form['uri_scheme'] = array(
+      '#type' => 'radios',
+      '#title' => t('Upload destination'),
+      '#options' => $scheme_options,
+      '#default_value' => $settings['uri_scheme'],
+      '#description' => t('Select where the final files should be stored. Private file storage has significantly more overhead than public files, but allows restricted access to files within this field.'),
+    );
+    return $form;
+  }
+}
+
+
+
+/*
+ *  Implements hook_field_is_empty()
+ * 
+ *  - determines whether to save a new row (FALSE) or to not save a new row at all (TRUE)
+ *  - we want to save only the values that have changed
+ *  - the 'changed' boolean is determined in historicalsurvey_fields_validate()
+ * 
+ */
+function historicalsurvey_fields_field_is_empty($item,$field){ 
+  if($item['changed']){
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
+/*
+ *  Validate function specified in historicalsurvey_fields_field_widget_form() 
+ */
+function historicalsurvey_fields_validate($element, &$form_state){
+
+  $field_name=isset($element['#field_name'])?$element['#field_name']:$element['#parents'][0];  
+    
+  if($form_state['complete form']['#form_id'] == 'field_ui_field_edit_form'){
+    return;
+  }
+  
+  /**
+  * here we set the 'changed' if the value of the field has changed for use with field revision display and historicalsurvey_fields_field_is_empty() function
+  * and the default 'replaced' value if the field was blank; 
+  * but ONLY if draft is coming from published state, ie. not during workflow from draft to moderation, etc
+  */
+  // if not newly-created (has workbench_moderation) and not coming straight from published state (where current and published vids are same), we keep the existing 'changed' value
+  if(isset($element['#entity']->workbench_moderation) && $element['#entity']->workbench_moderation['current']->vid!=$element['#entity']->workbench_moderation['published']->vid){
+    
+    //keep it the same if were passing this draft around unpublished states
+    $entity=(array)$element['#entity'];
+    $value = drupal_array_get_nested_value($entity, $element['changed']['#parents']);    
+    if(isset($value)){
+      form_set_value($element['changed'],$value ,$form_state);
+    }
+  
+  //else calculate if things changed for the submitted fields  
+  //also, make sure if we set NULL (when for data review functions), the value stays NULL (ie $form_state[input]=$form_state[value] )
+  }elseif(isset($form_state['input'][$field_name])){
+    $field_info=field_info_field($field_name);
+  
+    //we handle photos and document uploads in a separate form than the rest of the fields
+    if(strpos($form_state['complete form']['#action'],'upload')) {
+      switch ($field_info['type']){      
+        // because photos have true multiple values (like documents and designations), determining if anything changed is more complicated
+        case 'historicalsurvey_photo':
+          if(!in_array($form_state['clicked_button']['#value'],array("Upload","Remove"))){
+            $element_children=element_children($element);
+            
+            //find out if anything has changed and if there are any photos left
+            $changed=FALSE;
+            $all_blank=TRUE;
+            foreach($element_children as $delta){
+              $fid_parents=$element[$delta]['description']['#parents'];
+              $fid_parents[3]='fid';            
+              $new_value1=drupal_array_get_nested_value($form_state['input'],$fid_parents);
+              if(empty($new_value1)){           
+                $new_value1=NULL;
+              }else{
+                $all_blank=FALSE;
+              }
+              if(!empty($new_value1)){
+                $new_value3=drupal_array_get_nested_value($form_state['input'],$element[$delta]['main_image']['#parents']);
+                if(empty($new_value3)){$new_value3=0;}
+                
+                $new_value4=drupal_array_get_nested_value($form_state['input'],$element[$delta]['description']['#parents']);
+              
+                if($element[$delta]['#default_value']['fid']!=$new_value1 || 
+                $element[$delta]['main_image']['#default_value']!=$new_value3 || 
+                $element[$delta]['description']['#default_value']!=$new_value4){
+                  $changed=TRUE;
+                  break;
+                }
+              }
+            }
+            if($changed){
+              //if everything was deleted, save just one new NULL record
+              if($all_blank){
+                  // remove everything
+                  foreach(array_keys($form_state['values'][$element['#field_name']]) as $delta) {
+                    if($delta>0) {
+                      unset($form_state['values'][$element['#field_name']][$delta]);
+                    }
+                  }                
+                  // and set just one NULL record
+                  form_set_value($element[0]['fid'],NULL,$form_state);
+                  form_set_value($element[0]['main_image'],0,$form_state);
+                  form_set_value($element[0]['description'],'',$form_state);
+                  form_set_value($element[0]['changed'],1,$form_state);
+                  
+                  
+              //else if there are still values, unset any empties and save the rest
+              }else{
+                foreach($element_children as $delta){
+                  $fid_parents=$element[$delta]['description']['#parents'];
+                  $fid_parents[3]='fid';     
+                  $new_value1=drupal_array_get_nested_value($form_state['input'],$fid_parents);
+                  if(empty($new_value1)){
+                    $lang=$form_state['values']['language'];
+                    unset($form_state['values'][$element['#field_name']][$lang][$delta]);
+                  }else{
+                    $new_value3=drupal_array_get_nested_value($form_state['input'],$element[$delta]['main_image']['#parents']);
+                    if(empty($new_value3)){$new_value3=0;} 
+                    
+                    $new_value4=drupal_array_get_nested_value($form_state['input'],$element[$delta]['description']['#parents']);
+                    
+                    form_set_value($element[$delta]['fid'],$new_value1,$form_state);
+                    form_set_value($element[$delta]['main_image'],$new_value3,$form_state);
+                    form_set_value($element[$delta]['description'],$new_value4,$form_state);
+                    form_set_value($element[$delta]['changed'],1,$form_state);
+                  }                
+                }
+              }
+            }
+          }
+        break;
+        
+        // because documents have true multiple values (like photos and construction years), determining if anything changed is more complicated
+        case 'historicalsurvey_document':
+          if(!in_array($form_state['clicked_button']['#value'],array("Upload","Remove"))){
+            $element_children=element_children($element);
+            
+            //find out if anything has changed and if there are any photos left
+            $changed=FALSE;
+            $all_blank=TRUE;
+            foreach($element_children as $delta){
+              $fid_parents=$element[$delta]['description']['#parents'];
+              $fid_parents[3]='fid';            
+              $new_value1=drupal_array_get_nested_value($form_state['input'],$fid_parents);
+              if(empty($new_value1)){           
+                $new_value1=NULL;
+              }else{   
+                $all_blank=FALSE;
+              }
+              if(!empty($new_value1)){
+                
+                $new_value4=drupal_array_get_nested_value($form_state['input'],$element[$delta]['description']['#parents']);
+              
+                if($element[$delta]['#default_value']['fid']!=$new_value1 || 
+                $element[$delta]['description']['#default_value']!=$new_value4){
+                  $changed=TRUE;
+                  break;
+                }
+              }
+            }
+            if($changed){            
+              //if everything was deleted, save just one new NULL record
+              if($all_blank){
+                  // remove everything
+                  unset($form_state['values'][$element['#field_name']]);
+                  // and set just one NULL record
+                  form_set_value($element[0]['fid'],NULL,$form_state);
+                  form_set_value($element[0]['description'],'',$form_state);
+                  form_set_value($element[0]['changed'],1,$form_state);
+                  
+              //else if there are still values, unset any empties and save the rest
+              }else{
+                foreach($element_children as $delta){
+                  $fid_parents=$element[$delta]['description']['#parents'];
+                  $fid_parents[3]='fid';     
+                  $new_value1=drupal_array_get_nested_value($form_state['input'],$fid_parents);
+                  if(empty($new_value1)){
+                    $lang=$form_state['values']['language'];
+                    unset($form_state['values'][$element['#field_name']][$lang][$delta]);
+                  }else{
+                    
+                    $new_value4=drupal_array_get_nested_value($form_state['input'],$element[$delta]['description']['#parents']);
+                    
+                    form_set_value($element[$delta]['fid'],$new_value1,$form_state);
+                    form_set_value($element[$delta]['description'],$new_value4,$form_state);
+                    form_set_value($element[$delta]['changed'],1,$form_state);
+                  }                
+                }
+              }
+            }
+          }
+        break;        
+        default:
+          if(isset($element['changed'])) {
+            form_set_value($element['changed'],0,$form_state);
+          }
+      }    
+    }
+    
+    // else the form was submitted via the normal edit form, so process the fields
+    else {
+      switch ($field_info['type']){
+        case 'historicalsurvey_text':   
+          $new_value=drupal_array_get_nested_value($form_state['input'],$element['value']['#parents']);         
+          $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);   
+          if($element['value']['#default_value']!=$new_value || 
+            $element['notes']['#default_value']!=$new_notes_value){
+            form_set_value($element['value'],$new_value,$form_state);
+            form_set_value($element['notes'],$new_notes_value,$form_state);
+            form_set_value($element['changed'],1,$form_state);
+          }
+          //if the field was blank, always set replaced to 1 if there are values
+          if((!empty($new_value) || !empty($new_notes_value)) && (empty($element['value']['#default_value']) && empty($element['notes']['#default_value']))){
+            form_set_value($element['replaced'],1,$form_state);
+          }
+        break; 
+        case 'historicalsurvey_term_reference':    
+          if(strpos($field_name,'designation')) {
+          
+            //remove the blanks
+            $new_values=drupal_array_get_nested_value($form_state['input'],$element['tid']['#parents']); 
+            //dw($form_state['input'][$field_name],'',1);
+            foreach($new_values as $key=>$tid) {
+              if(empty($tid)) {
+                unset($new_values[$key]);
+              }
+            }
+            //reset the keys
+            $new_values = array_values($new_values);
+                 
+            $default_values=array();
+            if(!empty($element['tid']['#default_value'])) {
+              //setup old values for comparison
+              foreach($element['tid']['#default_value'] as $key=>$value_array) {
+                if(!empty($value_array['tid'])) {
+                  $default_values[$key]=$value_array['tid'];
+                }
+              }
+            }
+            //compare old values to new values
+            $lang=$form_state['values']['language'];
+            if(isset($default_values) && $default_values!=$new_values){
+            
+              //if there is a change, correctly set the new values
+              unset($form_state['values'][$field_name][$lang][0]);              
+              if(!empty($new_values)) {
+                foreach($new_values as $delta=>$value) {
+                  $form_state['values'][$field_name][$lang][$delta]['tid']=$value;
+                  $form_state['values'][$field_name][$lang][$delta]['changed']=1;
+                }
+              }
+              else{
+                $form_state['values'][$field_name][$lang][0]['tid']=NULL;
+                $form_state['values'][$field_name][$lang][0]['changed']=1;
+              }
+            }else{
+              //rearrange the array as required for this field
+              /* foreach($form_state['values'][$field_name][$lang][0]['tid'] as $value_array) {
+                $values[]=array(
+                  'tid' => $value_array[0],
+                  'changed' => 0,
+                );
+              }
+              $form_state['values'][$field_name][$lang]=$values; */
+            }
+          }
+          elseif($field_name == 'field_tag' || $field_name == 'field_survey_effort_tag'){
+            //handled by historicalsurvey_fields_autocomplete_validate()
+          }
+          else {
+            $new_value=drupal_array_get_nested_value($form_state['input'],$element['tid']['#parents']);  
+            $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);        
+            if($element['tid']['#default_value']!=$new_value || 
+              $element['notes']['#default_value']!=$new_notes_value){          
+              form_set_value($element['tid'],$new_value,$form_state);
+              form_set_value($element['notes'],$new_notes_value,$form_state);
+              form_set_value($element['changed'],1,$form_state);
+            }
+            //if the field was blank, always set replaced to 1 if there are values
+            if((!empty($new_value) || !empty($new_notes_value)) && (empty($element['tid']['#default_value']) && empty($element['notes']['#default_value']))){
+              form_set_value($element['replaced'],1,$form_state);
+            }
+          }
+        break;
+        case 'historicalsurvey_location':
+          if($element['location']['#default_value']!=$element['location']['#value'] ||
+            $element['x']['#default_value']!=$element['x']['#value'] ||
+            $element['y']['#default_value']!=$element['y']['#value']
+          ){
+            form_set_value($element['changed'],1,$form_state);        
+          }
+        break;
+        case 'historicalsurvey_construction_year':   
+        
+          $new_value1=drupal_array_get_nested_value($form_state['input'],$element['actual_early_year']['#parents']);
+          $new_value2=drupal_array_get_nested_value($form_state['input'],$element['actual_late_year']['#parents']);
+          $new_value3=drupal_array_get_nested_value($form_state['input'],$element['estimated_early_year']['#parents']);
+          $new_value4=drupal_array_get_nested_value($form_state['input'],$element['estimated_late_year']['#parents']);
+          $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']); 
+          if($element['actual_early_year']['#default_value']!=$new_value1 ||
+            $element['actual_late_year']['#default_value']!=$new_value2 ||
+            $element['estimated_early_year']['#default_value']!=$new_value3 ||
+            $element['estimated_late_year']['#default_value']!=$new_value4 ||
+            $element['notes']['#default_value']!=$new_notes_value){
+              form_set_value($element['actual_early_year'],$new_value1,$form_state);
+              form_set_value($element['actual_late_year'],$new_value2,$form_state);
+              form_set_value($element['estimated_early_year'],$new_value3,$form_state);
+              form_set_value($element['estimated_late_year'],$new_value4,$form_state);
+              form_set_value($element['notes'],$new_notes_value,$form_state);
+              form_set_value($element['changed'],1,$form_state);
+          }
+          //if the field was blank, always set replaced to 1 if there are values
+          if((!empty($new_value1) || !empty($new_value2) || !empty($new_value3) || !empty($new_value4) || !empty($new_notes_value)) 
+          && (empty($element['actual_early_year']['#default_value']) && empty($element['actual_late_year']['#default_value']) && empty($element['estimated_early_year']['#default_value']) && empty($element['estimated_late_year']['#default_value']) && empty($element['notes']['#default_value']))){
+            form_set_value($element['replaced'],1,$form_state);
+          }        
+          //dw($form_state['input']);
+        break;
+        case 'historicalsurvey_node_reference':
+          $new_value=drupal_array_get_nested_value($form_state['input'],$element['nid']['#parents']); 
+          $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);      
+          if($element['nid']['#default_value']!=$new_value || 
+            $element['notes']['#default_value']!=$new_notes_value){ 
+            form_set_value($element['nid'],$new_value,$form_state);
+            form_set_value($element['notes'],$new_notes_value,$form_state);
+            form_set_value($element['changed'],1,$form_state);
+          }
+          //if the field was blank, always set replaced to 1 if there are values
+          if((!empty($new_value) || !empty($new_notes_value)) && (empty($element['nid']['#default_value']) && empty($element['notes']['#default_value']))){
+            form_set_value($element['replaced'],1,$form_state);
+          }
+        break;
+        case 'historicalsurvey_user_reference':
+          $new_value=drupal_array_get_nested_value($form_state['input'],$element['uid']['#parents']);
+          $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);        
+          if($element['uid']['#default_value']!=$new_value || 
+            $element['notes']['#default_value']!=$new_notes_value){ 
+            form_set_value($element['uid'],$new_value,$form_state);
+            form_set_value($element['notes'],$new_notes_value,$form_state);
+            form_set_value($element['changed'],1,$form_state);
+          }
+          //if the field was blank, always set replaced to 1 if there are values
+          if((!empty($new_value) || !empty($new_notes_value)) && (empty($element['uid']['#default_value']) && empty($element['notes']['#default_value']))){
+            form_set_value($element['replaced'],1,$form_state);
+          }
+        break;
+        case 'historicalsurvey_photo':
+        case 'historicalsurvey_document':
+          foreach(element_children($element) as $delta){
+            form_set_value($element[$delta]['changed'],0,$form_state);   
+          }     
+        break;
+      }
+    }
+  }
+}
+
+
+/**
+ *  Helper function for field widgets
+ *  Returns an array of vocab terms for use with #options in a form field
+ */
+function historicalsurvey_fields_term_options_array($vocab_name){
+
+  if(strpos($vocab_name,'designation')!==FALSE){
+    $vocab_name='value_designation';
+  }
+
+  $options=array();
+  if ($vocabulary = taxonomy_vocabulary_machine_name_load('value_'.$vocab_name)) {
+    if ($terms = taxonomy_get_tree($vocabulary->vid)) {
+      foreach ($terms as $term) {
+        $options[$term->tid] = $term->name;
+      }
+    }
+  }
+  return $options;
+}
+
+/**
+ *  Helper function for field widgets
+ *  Returns text for field descriptions
+ */
+function historicalsurvey_fields_term_description($field_name){
+
+  switch ($field_name){
+    case 'field_place_type_1':
+    case 'field_place_type_2':
+    case 'field_place_type_3':
+      return "See U.S. Department of the Interior, National Park Service, \"How to Apply the National Register Criteria for Evaluation\", Section IV. How to Define Categories of Historic Properties, <a href=\"http://www.nps.gov/nr/publications/bulletins/nrb15/nrb15_4.htm\">http://www.nps.gov/nr/publications/bulletins/nrb15/nrb15_4.htm</a>";
+    break;
+
+  }  
+}
+
+
+/**
+ *  Helper function to insert footnote data into the various parts of the layout, called by historicalsurvey_place_preprocess_place_node_form() and 
+ historicalsurvey_place_preprocess_historicalsurvey_place_layout()
+ */
+function historicalsurvey_fields_content_insert_notes(&$variables) {
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields', array());
+  /* here we add notes data (most importantly, the footnote number) to field item for rendering later by field atter theme */
+  /* also we create the $content[notes] variable for use in the actual footnote block */
+  $note_count = 1;
+  foreach ($variables['content'] as $field_name => $variable) {
+    if (strpos($field_name, 'field_') === 0 && !empty($variable['#items']['revisions'])) {
+      foreach ($variable['#items']['revisions'] as $vid => $version_array) {
+        foreach ($version_array as $delta => $value_array) {
+        
+          if(is_numeric($delta)) {
+            if (isset($value_array['notes']) && !empty($value_array['notes'])) {              
+              if(isset($value_array['type'])) {
+                $sub_label=$value_array['type'];
+              }
+              $variables['content'][$field_name]['#items']['notes'][$vid][$delta] = array(
+                'sub-label' => isset($sub_label)?$sub_label:NULL,
+                'value' => $value_array['notes'],
+                'number' => $note_count,
+              );
+              $variables['content']['notes']['#items'][$field_name][$vid][$delta] = array(
+                'sub-label' => isset($sub_label)?$sub_label:NULL,
+                'value' => $value_array['notes'],
+                'number' => $note_count,
+              );
+              $note_count++;
+            }
+          }
+        }
+        break; //we just want the field's first (current) version
+      }
+    }
+  }
+  /* and the labels for the foot note itself */
+  foreach ($custom_fields['reviewed_fields'] as $fields) {
+    foreach ($fields as $field_machine => $field_label) {
+      if (isset($variables['content']['notes']['#items']['field_' . $field_machine . '_1'])) {
+        $variables['content']['notes']['#items']['field_' . $field_machine . '_1']['label'] = $field_label . ' (Unreviewed)';
+      }
+      if (isset($variables['content']['notes']['#items']['field_' . $field_machine . '_2'])) {
+        $variables['content']['notes']['#items']['field_' . $field_machine . '_2']['label'] = $field_label . ' (Professional)';
+      }
+      if (isset($variables['content']['notes']['#items']['field_' . $field_machine . '_3'])) {
+        $variables['content']['notes']['#items']['field_' . $field_machine . '_3']['label'] = $field_label . ' (Preservation Office)';
+      }
+    }
+  }
+  foreach ($custom_fields['unreviewed_fields'] as $fields) {
+    foreach ($fields as $field_machine => $field_label) {
+      if (isset($variables['content']['notes']['#items']['field_' . $field_machine])) {
+        $variables['content']['notes']['#items']['field_' . $field_machine]['label'] = $field_label;
+      }
+    }
+  }
+  $variables['content']['notes']['#theme'] = 'historicalsurvey_notes_formatter_element_theme';
+}
+
+
+/**
+ *  Helper function to insert footnote form into the layout, called by historicalsurvey_place_preprocess_place_node_form()
+ */
+function historicalsurvey_fields_form_insert_notes(&$variables) {
+  //dw(array_keys($variables['content']));
+  if (!empty($variables['content']['notes']['#items'])) {
+    //debug_write($variables['content']['notes']);
+    foreach ($variables['content']['notes']['#items'] as $field_name => $value_array) {
+      $lang = $variables['form'][$field_name]['#language'];
+      foreach (element_children($variables['form'][$field_name][$lang]) as $delta) {
+        if(isset($variables['form'][$field_name][$lang][$delta]['notes'])) {
+          $notes = $variables['form'][$field_name][$lang][$delta]['notes'];
+          $variables['content']['notes']['#form'][$field_name][$delta] = $notes;
+        }
+      }
+    }    
+  }
+  
+  //add the notes edit forms for unreviewed notes that dont yet exist  
+  foreach ($variables['content'] as $field_name => $variable) {
+    $form_keys = isset($variables['content']['notes']['#form']) ? array_keys($variables['content']['notes']['#form']) : array();
+    if (strpos($field_name, 'field_') === 0 && strpos($field_name, '_1') && !in_array($field_name, $form_keys)) {
+      $lang = $variables['form'][$field_name]['#language'];        
+      if(isset($variables['form'][$field_name][$lang][0]['notes'])) {
+        $variables['content']['notes']['#form']['#new'][$field_name] = $variables['form'][$field_name][$lang][0]['notes']; //there is only one delta bc its a new field
+      }
+    }
+  }
+  
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields', array());
+
+  /* and the labels for the footnote itself, if it is a new note */
+  foreach ($custom_fields['reviewed_fields'] as $fields) {
+    foreach ($fields as $field_machine => $field_label) {
+      if (isset($variables['content']['notes']['#form']['#new']['field_' . $field_machine . '_1'])) {
+        $variables['content']['notes']['#form']['#new']['field_' . $field_machine . '_1']['label'] = $field_label . ' (Unreviewed)';
+      }
+    }
+  }
+  foreach ($custom_fields['unreviewed_fields'] as $fields) {
+    foreach ($fields as $field_machine => $field_label) {
+      if (isset($variables['content']['notes']['#form']['#new']['field_' . $field_machine])) {
+        $variables['content']['notes']['#form']['#new']['field_' . $field_machine]['label'] = $field_label;
+      }
+    }
+  }
+}
+
+
+/**
+ *  Helper function to order the listing of fields in the table, called by template_preprocess_place_node_form()
+ *  @todo This should be an admin-configurable thing
+ */
+function historicalsurvey_fields_get_table_order() {
+
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields', array());
+  $table = array(
+    'designation_potential' => 'designation_potential',
+    'place_type' => 'place_type',
+    'status' => 'status',
+    'moved' => 'moved',
+    'name_current' => 'name_current',
+    'name_historic' => 'name_historic',
+    'narrative_overview' => 'narrative_overview',
+    'narrative_history' => 'narrative_history',
+    'narrative_significance' => 'narrative_significance',
+    'narrative_integrity' => 'narrative_integrity',
+    'narrative_features' => 'narrative_features',
+    'construction_year' => 'construction_year',
+    'style' => 'style',
+    'use_current' => 'use_current',
+    'use_historic' => 'use_historic',
+    'description' => 'description',
+    'person' => 'person',
+    'reference' => 'reference',
+  );
+  //put the field labels into the array
+  foreach ($table as $field) {
+    foreach ($custom_fields['reviewed_fields'] as $fields) {
+      foreach ($fields as $field_machine => $field_label) {
+        if ($field == $field_machine) {
+          $table[$field] = $field_label;
+        }
+      }
+    }
+  }
+  return $table;
+}
+
+
+/**
+  *   Implements hook_field_load()
+  *   Loads revisions into field
+  */
+function historicalsurvey_fields_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age){
+
+  if($age == FIELD_LOAD_CURRENT) {
+    foreach($items as $nid => $item) {
+      
+      $query = new EntityFieldQuery();
+      $query->entityCondition('entity_type', 'node')
+            ->entityCondition('bundle', 'place')
+            ->entityCondition('entity_id', $nid)
+            ->entityCondition('revision_id', $entities[$nid]->vid,'<=')
+            ->propertyCondition('status', 1)        
+            ->age(FIELD_LOAD_REVISION)
+            ->fieldCondition($field['field_name'], 'changed', 1, '=')
+            ->entityOrderBy('revision_id ','DESC');
+
+      if($result=$query->execute()){
+        foreach ($result as $entity_type => $nodes) {
+          foreach ($nodes as $entity_stub) {
+            if(!isset($items[$entity_stub->nid]['revisions'][$entity_stub->vid])){
+              $revision = node_load($entity_stub->nid, $entity_stub->vid);
+              $items[$entity_stub->nid]['revisions'][$entity_stub->vid] = $revision->{$field['field_name']}[$langcode];
+              
+              //ohotos and docs dont use their revisions
+              if(!in_array($field['field_name'],array('field_photo','field_document'))){
+                $items[$entity_stub->nid]['revisions'][$entity_stub->vid]['#revision_timestamp'] = $revision->revision_timestamp;
+                $items[$entity_stub->nid]['revisions'][$entity_stub->vid]['#revision_uid']=historicalsurvey_fields_get_uids($field['field_name'],$entity_stub->nid,$entity_stub->vid);
+              }              
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/**
+  *   Implements hook_entity_load()
+  *   Loads revisions into field
+  */
+function historicalsurvey_fields_entity_load($entities, $type) {
+
+  /* if($type == 'node' && FALSE) { 
+    $revisions = array();
+    // build array of relevant node revisions
+    foreach ($entities as $nid => $entity) {
+      if(historicalsurvey_fields_node_state($entity)=='current') {
+        $fields = field_info_instances('node','place');
+        foreach(array_keys($fields) as $field_name) {
+          $query = new EntityFieldQuery();
+          $query->entityCondition('entity_type', 'node')
+                ->entityCondition('bundle', 'place')
+                ->entityCondition('entity_id', $nid)
+                ->entityCondition('revision_id', $entity->vid,'<=')
+                ->propertyCondition('status', 1)        
+                ->age(FIELD_LOAD_REVISION)
+                ->fieldCondition($field_name, 'changed', 1, '=')
+                ->entityOrderBy('revision_id ','DESC');
+
+          if($result=$query->execute()){
+            foreach ($result as $entity_type => $stubs) {
+              foreach ($stubs as $stub) {
+                if(!isset($entity->revision_data[$stub->vid]) && historicalsurvey_fields_node_state($stub)=='revision'){
+                  $entity->revision_data[$stub->vid] = node_load($stub->nid, $stub->vid);
+                }
+              }
+            }
+          }    
+        }        
+      }
+    }
+  } */
+}
+
+
+function historicalsurvey_fields_node_state($node) {
+  $vid=db_query("SELECT vid FROM node WHERE nid = :nid",array(':nid'=>$node->nid))->fetchField();
+  return ($vid == $node->vid)?'current':'revision'; 
+}
+
+
+/*
+ *  Helper Function, returns an array of the field's revisions keyed by vid, ordered from current to oldest
+ *  Slow function...only used by the solr search indexing
+ */
+ function historicalsurvey_fields_get_field_revisions($field_name,$entities){
+
+  $nids=array_keys($entities);
+  foreach($nids as $nid){
+    $vids[]=$entities[$nid]->vid;
+  }
+  $revisions=array();
+  
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node')
+        ->entityCondition('bundle', 'place')
+        ->entityCondition('entity_id', $nids)
+        ->entityCondition('revision_id', $vids,'<=')
+        ->propertyCondition('status', 1)        
+        ->age(FIELD_LOAD_REVISION)
+        ->fieldCondition($field_name, 'changed', 1, '=')
+        ->entityOrderBy('revision_id ','DESC');
+
+  if($result=$query->execute()){   
+    foreach ($result as $entity_type => $nodes) {
+      foreach ($nodes as $entity_stub) {
+        if(!isset($revisions[$entity_stub->nid][$entity_stub->vid])){
+          $revisions[$entity_stub->nid][$entity_stub->vid] = node_load($entity_stub->nid, $entity_stub->vid);
+        }
+      }
+    }
+  }    
+  return $revisions;
+}
+
+
+/*
+ *  Helper Function, returns an array of a field's (potentially multiple) author uid(s)
+ */
+function historicalsurvey_fields_get_uids($field_name,$nid,$orig_vid){
+    
+  $query="
+    SELECT revision_id 
+    FROM field_revision_".$field_name." 
+    WHERE entity_id=:nid 
+    AND revision_id<=:vid";
+  
+  if(!strpos($field_name,'designation') && !strpos($field_name,'survey') && !strpos($field_name,'tag')) {
+    $query.=" AND ".$field_name."_replaced=1";
+  }
+  
+  $query.=" ORDER BY revision_id DESC LIMIT 0,1";
+
+  $result=db_query($query,array(':nid'=>$nid,':vid'=>$orig_vid));
+
+  if ($result) {
+    $row = $result->fetchAssoc();
+    $first_vid=$row['revision_id'];
+  }
+  if(!empty($first_vid)) {
+    $query="SELECT revision_id FROM field_revision_".$field_name." WHERE entity_id=:nid AND revision_id BETWEEN :first_vid AND :last_vid";
+    $result=db_query($query,array(':nid'=>$nid,':first_vid'=>$first_vid,':last_vid'=>$orig_vid));
+    if ($result) {
+      while($row = $result->fetchAssoc()) {
+        $vids[]=$row['revision_id'];
+      }
+    }    
+    
+    $result=db_query("SELECT uid FROM node_revision WHERE vid IN (:vids)",array(':vids'=>$vids));
+    if ($result) {
+      while ($row = $result->fetchAssoc()) {
+        $uids[$row['uid']]=$row['uid'];
+      }
+    }
+  }
+  return $uids;
+}
+
+
+/* 
+ * Helper Functions to retrieve field info
+ */
+function historicalsurvey_fields_info_field_no_review($field,$review_level_key){
+  if($info=field_info_field($field)){
+    return $info;
+  }elseif($info=field_info_field($field.'_'.$review_level_key)){
+    return $info;
+  }else{
+    return FALSE;
+  }
+}
+
+
+/* 
+ * Helper Functions to retrieve field label
+ */
+function historicalsurvey_fields_get_field_label($field_name){
+  
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields',array());  
+  $review_levels=variable_get('historicalsurvey_place_review_levels',array());
+
+  //strip the field name
+  foreach($review_levels as $level_array){
+    $field_name = str_replace($level_array['machine_suffix'],'',$field_name);
+  }
+  $field_name = str_replace('field_','',$field_name);
+  
+  foreach($custom_fields as $review_group){
+    foreach($review_group as $field_group){
+      foreach($field_group as $field_machine=>$field_label){
+        if($field_machine == $field_name){
+          return $field_label;
+        }
+      }
+    }
+  } 
+  return '';
+}
+

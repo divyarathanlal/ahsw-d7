@@ -1,0 +1,15 @@
+name = HistoricalSurvey Search
+description = Custom Searching
+core = 7.x
+package = HistoricalSurvey
+dependencies[] = search_api
+dependencies[] = search_api_solr
+dependencies[] = search_api_page
+dependencies[] = facetapi
+dependencies[] = historicalsurvey_place
+
+files[]=includes/callback_add_revisions.inc
+
+;project = historicalsurvey_search
+;version = 7.x-1.0
+;project status url = http://historicalsurvey.org/drupal-updates/release-history

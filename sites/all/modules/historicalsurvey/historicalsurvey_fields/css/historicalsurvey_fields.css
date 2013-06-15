@@ -1,0 +1,541 @@
+
+/*Common*/
+.revisions{
+
+}
+
+.label{  
+  color:#666;
+  margin:0 10px 0 0;
+  
+}
+
+.notes .label,
+.revision-info .label{  
+  margin: 0 10px 0 5px;
+  font-size: .8em;
+  width: 75px;
+  display: inline-block;
+  text-align: right;
+}
+.revision-info .value{  
+  font-size: .8em;
+}
+
+.notes .notes-item{  
+  margin: 0px 65px;
+}
+
+/* .fuzz{
+  height:30px;
+  background: -webkit-gradient( linear, left bottom, left top, color-stop(1, rgba(255,255,255,0.0)), /* Top */ color-stop(0, rgba(255,255,25,1.0)) /* Bottom */ );
+} */
+
+.current-version{
+/*   border:1px solid #999; */
+}
+
+#field-designation-official-wrapper .current-version span.term {
+  font-size: 85%;
+  padding: 1px;
+  display: block;
+  margin: 3px;
+}
+
+
+#reviewed-fields .main-value{
+  font-size:85%;
+  padding-left: 10px;
+  /*padding-top: 5px;
+  padding-bottom: 5px;*/
+  white-space: nowrap;
+}
+
+#reviewed-fields .row-open.column-open .field-wrapper{
+
+}
+
+#reviewed-fields .row-open.column-open .revision .main-value,
+#reviewed-fields .row-open.column-open .current-version .main-value{
+  /* background-color: #EEE; */
+  font-size:85%;
+  white-space: normal;
+  padding-right:5px;
+  padding-bottom: 7px;
+}
+
+#reviewed-fields .main-value p{
+  margin:0;
+}
+
+
+#reviewed-fields .sub-field-label,
+#notes-wrapper .notes-label{
+  display: inline-block;
+  color:#aaa;
+}
+#notes-wrapper .notes-label{
+  padding-right:10px;
+}
+#reviewed-fields .sub-values,
+#notes-wrapper .notes-values{
+  margin-left:20px
+}
+#reviewed-fields .sub-value-label{
+  display: inline-block;
+  padding-right: 10px;
+}
+#reviewed-fields .sub-value{
+  font-weight:bold;  
+}
+
+
+
+.revision{
+  border-top:1px solid #ddd;
+  /* margin:10px 0 10px 10px; */
+  background-color:#eee;
+  padding-bottom:10px;
+  padding-left:15px;
+  display:none
+}
+
+.revision .notes .value{
+  font-size:71%;
+  padding-bottom: 10px;
+}
+.revision .notes .value p{
+  margin:0
+}
+
+.revision .main-value{
+  background-color:#eee;  
+  padding:10px;
+}
+
+td[row="designation_potential"] .main-value {
+  padding:0px;
+}
+
+.revision-info{
+  margin-top:10px;
+  padding-bottom:5px;
+  display:none;
+}
+
+.revision-info .time .value{
+  font-size: 71%;
+}
+
+.revision-info .author a{
+  font-size: 95%;
+  font-weight: bold;
+  color: darkBlue;
+  text-decoration:none;
+}
+
+.revision-count{
+  display:none;
+  padding-left: 10px;
+  padding-top:5px;
+  padding-bottom:5px;
+  background-color:#eee;
+  font-size: 71%;
+  font-weight: bold;
+  color: darkBlue;
+}
+
+.field-name{  
+  font-size:85%;
+}
+
+
+
+#reviewed-fields .footnote-link{
+  display:none;
+  padding-left: 5px;
+}
+
+.footnote-link a{
+  color: darkBlue;
+  font-weight:bold;
+  text-decoration:none;
+}
+
+#notes-wrapper table{
+}
+
+#notes-wrapper .notes-title{
+  padding-left:20px;
+  padding-bottom: 10px;
+}
+
+#notes-wrapper .note-number{
+  padding-left:20px;
+}
+
+#notes-wrapper .note-number,
+#notes-wrapper .note-label{
+  font-size:71%;
+  vertical-align:top;
+}
+
+#notes-wrapper .note-label{
+  padding-right:20px;
+  padding-left:5px;
+}
+
+#notes-wrapper .note-value{
+  font-size:71%;
+  padding-bottom: 10px;
+}
+#notes-wrapper .note-value p{
+  margin:0
+}
+
+#notes-wrapper tr{
+  cursor:pointer;
+}
+
+#notes-wrapper .note-selected td{
+  background-color:lightBlue;
+}
+
+#reviewed-fields .empty{
+  display:none;
+}
+
+#reviewed-fields .notice{
+  padding-left:5px;
+  font-size:71%;
+  font-weight:bold;
+}
+
+.page-node #fade{
+  position:fixed;
+  height:100%;
+  width:100%;
+  z-index:100;
+  background-image:url('../img/black-75-pixel.png');
+  display:none;
+}
+
+/* edit mode */
+.edit-mode #reviewed-fields .form-wrapper{
+  display:none;
+  /*font-size: 85%;*/
+}
+.edit-mode #reviewed-fields .form-wrapper > div{
+  padding: 10px;
+}
+
+.edit-mode .field-wrapper .form-item{
+  margin:0;
+}
+
+.edit-mode .field-wrapper .form-type-radio{
+  margin:5px;
+}
+
+.edit-mode .note-value .form-item{
+  display:none;
+  margin:0;
+}
+
+.edit-mode .new-note{
+  display:none;
+}
+
+.edit-mode .edit-instruction{
+  display:none;
+  padding: 10px 10px 30px 10px !important;
+  font-size: 71%;
+  font-weight:bold;
+  background-color:#eee;
+}
+
+.edit-mode .replaced-option{
+  font-size: 0.85em;
+  margin-top: 20px;
+}
+
+.edit-mode #notes-wrapper .note-selected{
+  
+}
+
+.edit-mode #notes-wrapper .note-selected td{
+  background-color:white;
+  padding-top:5px;
+}
+
+.edit-mode #notes-wrapper .note-selected .note-label{
+  font-weight:bold;
+  color:red;
+  border-left:1px solid red;
+  border-top:1px solid red;
+  border-bottom:1px solid red;
+}
+
+.edit-mode #notes-wrapper .note-selected .note-value{
+  padding:5px 5px 5px 0;  
+  border-right:1px solid red;
+  border-top:1px solid red;
+  border-bottom:1px solid red;
+}
+
+.edit-mode #notes-wrapper .note-selected textarea{
+  padding:5px;
+}
+
+.edit-mode table.field-multiple-table tr{
+  background-color:white;
+}
+
+/*Construction Year Widget*/
+.edit-mode .construction-year-radios .form-radios{
+  display:inline-block;
+  margin-right: 40px;
+}
+
+.edit-mode .construction-year-actual,
+.edit-mode .construction-year-estimated{
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+.edit-mode .construction-year-actual-range,
+.edit-mode .construction-year-estimated-range,
+.edit-mode .construction-year-actual .form-type-textfield,
+.edit-mode .construction-year-estimated .form-type-textfield{
+  display:inline-block;
+  margin-right: 10px;
+}
+.edit-mode .construction-year-estimated input,
+.edit-mode .construction-year-actual input{
+  margin-left: 10px;
+  padding: 5px;
+  text-align: center;
+  font-size:150%;
+}
+
+/*Designation*/
+.edit-mode .field-name-field-designation-official,
+.edit-mode .field-name-field-designation-potential-1,
+.edit-mode .field-name-field-designation-potential-2,
+.edit-mode .field-name-field-designation-potential-3 {
+  font-size:0.85em;
+}
+
+
+.edit-mode #edit-additional-settings{
+  background-color: white;
+  margin-top: 10px;
+  padding-top:10px;
+  border:1px solid #ddd
+}
+
+.edit-mode #edit-additional-settings fieldset{
+  border:none;
+}
+
+.edit-mode #edit-actions{
+  margin-top: 10px;
+  margin-bottom: 10px;
+  float: left;
+  width: 960px;
+}
+
+
+/*Physical Description*/
+/* .edit-mode .field-type-historicalsurvey-text-type input{
+  float: left;
+  margin-right: 30px;
+}
+.edit-mode .field-type-historicalsurvey-text-type select{
+  float: left;
+  margin-right: 30px;
+}
+.edit-mode .field-type-historicalsurvey-text-type textarea{
+  margin-top: 0px;
+  margin-bottom: 0px;
+  width: 275px;
+}
+.edit-mode .field-type-historicalsurvey-text-type .form-item{
+  white-space: normal;
+}
+.edit-mode .field-type-historicalsurvey-text-type .form-type-textarea{
+  width: 500px;
+} */
+
+.edit-mode #edit-add-files-link a{
+  text-decoration:none;
+  
+}
+
+/*buttons*/
+.edit-mode #edit-actions input[type="submit"]{
+  background-color:darkBlue;
+  color:white;
+  padding:6px;
+  border:none;
+  margin:5px;
+  font-size:95%;
+  font-weight:bold;
+}
+
+/*Location*/
+
+.street{
+  font-size:115%;
+  margin:0 0 0 0;
+}
+
+.lat-lng{
+  font-size:95%;
+}
+
+#outer-photo-wrapper .main-image{
+  height:153px;
+  width:200px;
+}
+#outer-photo-wrapper .main-image .no-photo{
+  font-size:90%;
+  
+}
+#outer-photo-wrapper .main-value{
+  display: inline-block;
+}
+#outer-photo-wrapper .thumb-image img{
+  padding-right:4px;
+}
+#outer-photo-wrapper .thumb-images-wrapper{
+  overflow-x: scroll;
+  height: 75px;
+  overflow-y: hidden;
+}
+
+#outer-photo-wrapper .thumb-images{
+  height: 75px;
+}
+
+#outer-document-wrapper .main-value{  
+  padding:1px;
+}
+#outer-document-wrapper a{  
+  font-size: 80%;
+  color: darkBlue;
+  text-decoration:none;
+}
+#outer-document-wrapper a span{  
+  margin-left:5px;
+}
+
+#outer-document-wrapper span.document-size{  
+display: inline-block;
+}
+
+.edit-mode #field-survey-effort-tag-wrapper .main-value,
+.edit-mode #field-tag-wrapper .main-value{
+  display:none;
+}
+.edit-mode #outer-photo-wrapper .field-photo-view,
+.edit-mode #outer-document-wrapper .field-document-view{
+/*   display:none; */  
+}
+.edit-mode #outer-photo-wrapper fieldset,
+.edit-mode #outer-document-wrapper fieldset{
+  font-size:10px;
+  width:200px;
+}
+.edit-mode #outer-photo-wrapper .form-textarea-wrapper,
+.edit-mode #outer-photo-wrapper .description,
+.edit-mode #outer-document-wrapper .form-textarea-wrapper,
+.edit-mode #outer-document-wrapper .description {
+  width:200px;
+  white-space: normal;
+}
+
+.edit-mode #outer-photo-wrapper td,
+.edit-mode #outer-document-wrapper td {
+  display:block;
+}
+.edit-mode #outer-photo-wrapper th,
+.edit-mode #outer-document-wrapper th {
+/*   display:none; */
+}
+
+/*Field Wizard*/
+.lightbox-shadow{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  filter: alpha(opacity=75);
+  -moz-opacity: 0.75;
+  -khtml-opacity: 0.75;
+  opacity: 0.75;
+  z-index: 1000;
+  display: none;
+}
+
+.field-wizard{
+  position: absolute;
+  background-color: white;
+  border: 6px solid #666;
+  width: 535px;
+  height: auto;  
+  display:none;
+  z-index: 1001;
+}
+
+.field-wizard .select1 select,
+.field-wizard .select2 select,
+.field-wizard .select3 select{
+  width: 515px;
+  font-size: 16px;
+  padding: 5px;
+}
+
+.field-wizard .select2,
+.field-wizard .select3{
+  margin-top:15px;
+}
+.field-wizard .select2-options,
+.field-wizard .select3-options{
+  display:none;
+}
+.field-wizard .select2 .form-wrapper,
+.field-wizard .select3 .form-wrapper{
+  padding: 0 !important;
+}
+.field-wizard .wizard-button,
+.wizard-trigger{
+  display: inline-block;
+  background-color: darkBlue;
+  color: white;
+  padding: 6px;
+  border: none;
+  margin: 10px;
+  font-size: 95%;
+  font-weight: bold;
+  float:right;
+}
+
+/*Designation field*/
+.edit-mode .designation-group .form-radios {
+  display:none;
+  background-color: #f9f9f9;
+  padding: 5px 10px;
+  margin-bottom: 20px;
+  margin-left: 10px;
+}
+.edit-mode .designation-group-title {
+  padding:5px;
+  margin:3px;
+  font-weight:bold;
+
+}
+.edit-mode .designation-group-title span {
+  font-weight:normal
+}

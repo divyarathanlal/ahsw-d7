@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Install file for HistoricalSurvey Search
+ *
+ */
+
+/**
+ * Implements hook_install().
+ */
+function historicalsurvey_search_install() { }
+/**
+ * Implements hook_uninstall().
+ */
+function historicalsurvey_search_uninstall() { }

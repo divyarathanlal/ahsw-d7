@@ -1,0 +1,397 @@
+<?php
+
+/**
+ * Install file for HistoricalSurvey Place module
+ */
+
+/**
+ * Implements hook_install().
+ */
+function historicalsurvey_place_install() {
+  $t = get_t();
+
+  $place = array(
+    'type' => 'place',
+    'name' => $t('Place'),
+    'base' => 'node_content',
+    'description' => $t('Place'),
+    'title_label' => $t('Location'),
+    'custom' => TRUE,
+  );
+
+  $content_type = node_type_set_defaults($place);
+  node_type_save($content_type);
+
+  //Save our custom fields as a persistant variable for other modules  
+  $custom_fields = array(
+    'unreviewed_fields' => array(
+      'historicalsurvey_location' => array(
+        'location' => 'Location',
+      ),
+      /* 'historicalsurvey_geofield'=>array(
+       'geo' => 'Geo',
+       ), */
+      'historicalsurvey_node_reference' => array(
+        'contains' => 'Contains',
+        'survey_effort' => 'Survey Effort(s)',
+      ),
+      'historicalsurvey_term_reference' => array(
+        'tag' => 'Tag(s)',
+        'survey_effort_tag' => 'Survey Effort(s)',
+        'designation_official' => 'Official Designation(s)',
+      ),
+      'historicalsurvey_photo' => array(
+        'photo' => 'Photo(s)',
+      ),
+      'historicalsurvey_document' => array(
+        'document' => 'Document(s)',
+      ),
+    ),
+    'reviewed_fields' => array(
+      'historicalsurvey_construction_year' => array(
+        'construction_year' => 'Construction Year(s)',
+      ),
+      'historicalsurvey_term_reference' => array(
+        'place_type' => 'Place Type',
+        'status' => 'Status',
+        'moved' => 'Moved',
+        'designation_potential' => 'Potential Designation(s)',
+      ),
+      'historicalsurvey_text' => array(
+        'name_current' => 'Current Name(s)',
+        'name_historic' => 'Historic Name(s)',
+        'use_current' => 'Current Use(s)',
+        'use_historic' => 'Historic Use(s)',
+        'style' => 'Stylistic Influence(s)',
+        'narrative_overview' => 'Overview',
+        'narrative_significance' => 'Significance',
+        'narrative_history' => 'History',
+        'narrative_integrity' => 'Integrity',
+        'narrative_features' => 'Characater-Defining Features',
+        'person' => 'Associated Person(s)',
+        'description' => 'Physical Description',
+        'reference' => 'References',
+      ),
+     /*  'historicalsurvey_text_type' => array(
+      ), */
+    ),
+  );
+  variable_set('historicalsurvey_place_custom_fields', $custom_fields);
+
+  //Save our review levels as a persistant variable for other modules  
+  $review_levels = array(
+    '1' => array(
+      'machine_suffix' => '_1',
+      'human_suffix' => 'Unreviewed',
+      'label' => 'Unreviewed',
+    ),
+    '2' => array(
+      'machine_suffix' => '_2',
+      'human_suffix' => 'Professional Review',
+      'label' => 'Professional Review',
+    ),
+    '3' => array(
+      'machine_suffix' => '_3',
+      'human_suffix' => 'Preservation Office Review',
+      'label' => 'Preservation Office Review',
+    ),
+  );
+  variable_set('historicalsurvey_place_review_levels', $review_levels);
+
+  //install the Review Levels, for use when creating the fieldnames
+  taxonomy_vocabulary_save((object) array(
+    'name' => 'Review Level',
+    'machine_name' => 'review_level',
+  ));
+  $vid = taxonomy_vocabulary_machine_name_load('review_level')->vid;
+  foreach ($review_levels as $level) {
+    taxonomy_term_save((object) array(
+      'name' => $level['label'],
+      'vid' => $vid,
+    ));
+  }
+
+  // Create all the fields
+  foreach (historicalsurvey_place_installed_fields() as $field) {
+    field_create_field($field);
+  }
+
+  // Create all the field instances
+  foreach (historicalsurvey_place_installed_instances() as $instance) {
+    $instance['entity_type'] = 'node';
+    $instance['bundle'] = $place['type'];
+    field_create_instance($instance);
+  }
+}
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function historicalsurvey_place_uninstall() {
+  $sql = 'SELECT nid FROM {node} n WHERE n.type = :type';
+  $result = db_query($sql, array(':type' => 'place'));
+  $nids = array();
+  foreach ($result as $row) {
+    $nids[] = $row->nid;
+  }
+
+  // Delete all the nodes
+  node_delete_multiple($nids);
+
+  // Delete all fields
+  foreach (array_keys(historicalsurvey_place_installed_fields()) as $field) {
+    field_delete_field($field);
+  }
+
+  // Delete all field instances
+  $instances = field_info_instances('node', 'place');
+  foreach ($instances as $instance_name => $instance) {
+    field_delete_instance($instance);
+  }
+
+  // Delete content type
+  node_type_delete('place');
+
+  //Delete custom persistant variables
+  variable_del('historicalsurvey_place_custom_fields');
+  variable_del('historicalsurvey_place_review_levels');
+
+  //Delete the Review Level vocabulary
+  $vocabulary = taxonomy_vocabulary_machine_name_load('review_level');
+  if (!empty($vocabulary)) {
+    taxonomy_vocabulary_delete($vocabulary->vid);
+  }
+
+  field_purge_batch(1000);
+}
+
+
+/**
+ * Returns a structured array defining the fields created by this content type.
+ */
+function historicalsurvey_place_installed_fields() {
+
+  //get the custom fields set in historicalsurvey_place_install  
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields', array());
+  $installed_fields = array();
+
+  //make each unreviewed field
+  foreach ($custom_fields['unreviewed_fields'] as $field_type => $fields) {
+
+    foreach ($fields as $machine_name => $human_name) {
+      
+      $cardinality = ($field_type == 'historicalsurvey_location'|| $field_type == 'designation_official') ? 1 : -1;
+      $array = array(
+        'field_' . $machine_name => array(
+          'field_name' => 'field_' . $machine_name,
+          'cardinality' => $cardinality,
+          'type' => $field_type,
+        ),
+      );
+      switch ($field_type) {
+        case "historicalsurvey_term_reference":
+          $array['field_' . $machine_name]['settings']['allowed_values'] = array(
+            array(
+              'vocabulary' => ($machine_name == 'designation_official') ? 'designation' : $machine_name,
+              'parent' => 0,
+            ),
+          );
+          break;
+        case "historicalsurvey_node_reference":
+          $type = ($machine_name == 'survey_effort') ? 'survey' : 'place';
+          $array['field_' . $machine_name]['settings']['referenceable_types'] = array(
+            $type => $type,
+          );
+          break;
+        case "historicalsurvey_text":
+          $array['field_' . $machine_name]['settings'] = array(
+            'rows' => 1,
+            'max_length' => 16,
+          );
+          break;
+      }
+      $installed_fields += $array;
+    }
+  }
+
+  //make each reviewed field for each review level    
+  $review_levels = variable_get('historicalsurvey_place_review_levels', array());
+  foreach ($review_levels as $level) {
+    foreach ($custom_fields['reviewed_fields'] as $field_type => $fields) {
+
+      $orig_field_type = $field_type;
+      $suffix = $level['machine_suffix'];
+
+      foreach ($fields as $machine_name => $human_name) {        
+        $cardinality = (in_array($machine_name,array('designation_potential'))) ? -1 : 1;
+        $array = array(
+          'field_' . $machine_name . $suffix => array(
+            'field_name' => 'field_' . $machine_name . $suffix,
+            'cardinality' => $cardinality,
+            'type' => $field_type,
+          ),
+        );
+        switch ($field_type) {
+          case "historicalsurvey_term_reference":
+            $array['field_' . $machine_name . $suffix]['settings']['allowed_values'] = array(
+            array(
+              'vocabulary' => ($machine_name == 'designation_potential') ? 'designation' : $machine_name,
+              'parent' => 0,
+            ),
+          );
+            break;
+          /* case "historicalsurvey_text_type":
+            $array['field_' . $machine_name . $suffix]['settings'] = array(
+              'rows' => 5,
+              'max_length' => 512,
+            );
+            break; */
+          case "historicalsurvey_text":
+            $array['field_' . $machine_name . $suffix]['settings'] = array(
+              'rows' => 5,
+              'max_length' => 512,
+            );
+            break;
+        }
+        $installed_fields += $array;
+      }
+    }
+
+  }
+  return $installed_fields;
+}
+
+
+/**
+ * Returns a structured array defining the instances for this content type.
+ */
+function historicalsurvey_place_installed_instances() {
+  $t = get_t();
+  $instances = array();
+
+  //get the custom fields set in historicalsurvey_place_install
+  $custom_fields = variable_get('historicalsurvey_place_custom_fields', array());
+
+  foreach ($custom_fields['unreviewed_fields'] as $field_type => $fields) {
+    foreach ($fields as $machine_name => $human_name) {
+      $array = array(
+        'field_' . $machine_name => array(
+          'field_name' => 'field_' . $machine_name,
+          'label' => $t($human_name),
+          'required' => FALSE,
+          'widget' => array(
+            'type' => $field_type . '_widget',
+          ),
+          'display' => array(
+            'default' => array(
+              'label' => 'above',
+              'type' => 'default',
+            ),
+          ),
+          'review_level' => NULL,
+          //'default_value_function' => $field_type.'_get_default_value', 
+        ),
+      );
+      switch ($field_type) {
+        /* case 'historicalsurvey_text_type':
+          $array['field_' . $machine_name]['settings'] = array(
+            'text_processing' => FALSE,
+            'max_length' => 16,
+          );
+          $array['field_' . $machine_name]['widget']['settings'] = array(
+            'size' => 16,
+            'rows' => 1,
+          );
+          break; */
+        case 'historicalsurvey_text':
+          $array['field_' . $machine_name]['settings'] = array(
+            'text_processing' => FALSE,
+            'max_length' => 16,
+          );
+          $array['field_' . $machine_name]['widget']['settings'] = array(
+            'size' => 16,
+            'rows' => 1,
+          );
+          break;
+        case 'historicalsurvey_term_reference':
+          $array['field_' . $machine_name]['widget']['settings'] = array(
+            'autocomplete_match' => 'contains',
+            'size' => 60,
+            'autocomplete_path' => 'historicalsurvey_term_reference/autocomplete',
+          );
+          break;
+        case 'historicalsurvey_node_reference':
+          $array['field_' . $machine_name]['widget']['settings'] = array(
+            'autocomplete_match' => 'contains',
+            'size' => 60,
+            'autocomplete_path' => 'node_reference/autocomplete',
+          );
+          break;
+      }
+      $instances += $array;
+    }
+  }
+
+  //make each field for each review level  
+  $review_levels = variable_get('historicalsurvey_place_review_levels', array());
+  foreach ($review_levels as $key => $level) {
+    foreach ($custom_fields['reviewed_fields'] as $field_type => $fields) {
+
+      $orig_field_type = $field_type;
+      $machine_suffix = $level['machine_suffix'];
+      $human_suffix = ' (' . $level['human_suffix'] . ')';
+
+      foreach ($fields as $machine_name => $human_name) {
+        $array = array(
+          'field_' . $machine_name . $machine_suffix => array(
+            'field_name' => 'field_' . $machine_name . $machine_suffix,
+            'label' => $t($human_name) . $human_suffix,
+            'required' => FALSE,
+            'widget' => array(
+              'type' => $field_type . '_widget',
+            ),
+            'display' => array(
+              'default' => array(
+                'label' => 'above',
+                'type' => 'default',
+              ),
+            ),
+            'review_level' => array(
+              $key => $level,
+            ),
+            //'default_value_function' => $field_type.'_get_default_value', 
+          ),
+        );
+        switch ($field_type) {
+          /* case 'historicalsurvey_text_type':
+            $array['field_' . $machine_name . $machine_suffix]['settings'] = array(
+              'text_processing' => FALSE,
+              'max_length' => 512,
+            );
+            $array['field_' . $machine_name . $machine_suffix]['widget']['settings'] = array(
+              'size' => 64,
+              'rows' => 5,
+            );
+            break; */
+          case 'historicalsurvey_text':
+            $array['field_' . $machine_name . $machine_suffix]['settings'] = array(
+              'text_processing' => FALSE,
+              'max_length' => 512,
+            );
+            $array['field_' . $machine_name . $machine_suffix]['widget']['settings'] = array(
+              'size' => 64,
+              'rows' => 5,
+            );
+            break;
+          case 'historicalsurvey_term_reference':
+            $array['field_' . $machine_name . $machine_suffix]['widget']['settings'] = array();
+            break;        
+        }
+        $instances += $array;
+      }
+    }
+  }
+
+  return $instances;
+}

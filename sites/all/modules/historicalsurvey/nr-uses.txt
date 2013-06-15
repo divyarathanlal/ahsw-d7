@@ -1,0 +1,96 @@
+DOMESTIC-single dwelling
+DOMESTIC-multiple dwelling
+DOMESTIC-secondary structure
+DOMESTIC-hotel
+DOMESTIC-institutional housing
+DOMESTIC-camp
+DOMESTIC-village site
+COMMERCE/TRADE-business
+COMMERCE/TRADE-professional
+COMMERCE/TRADE-organizational
+COMMERCE/TRADE-financial institution
+COMMERCE/TRADE-specialty store
+COMMERCE/TRADE-department store
+COMMERCE/TRADE-restaurant
+COMMERCE/TRADE-warehouse
+COMMERCE/TRADE-trade (archeology)
+SOCIAL-meeting hall
+SOCIAL-clubhouse
+SOCIAL-civic
+GOVERNMENT-capitol
+GOVERNMENT-city hall
+GOVERNMENT-correctional facility
+GOVERNMENT-fire station
+GOVERNMENT-government office
+GOVERNMENT-diplomatic building
+GOVERNMENT-custom house
+GOVERNMENT-post office 
+GOVERNMENT-public works
+GOVERNMENT-courthouse
+EDUCATION-schools
+EDUCATION-college
+EDUCATION-library
+EDUCATION-research facility
+EDUCATION-education-related
+RELIGION-religious facility
+RELIGION-ceremonial site
+RELIGION-church school 
+RELIGION-church-related residence
+FUNERARY-cemetery
+FUNERARY-graves/burials
+FUNERARY-mortuary
+FUNERARY-category: RECREATION AND CULTURE
+FUNERARY-theater 
+FUNERARY-auditorium
+FUNERARY-museum
+FUNERARY-music facility
+FUNERARY-outdoor recreation
+FUNERARY-fair
+FUNERARY-monument/marker
+FUNERARY-work of art
+AGRICULTURE/SUBSISTENCE-processing
+AGRICULTURE/SUBSISTENCE-storage
+AGRICULTURE/SUBSISTENCE-agricultural field
+AGRICULTURE/SUBSISTENCE-animal facility
+AGRICULTURE/SUBSISTENCE-fishing facility or site
+AGRICULTURE/SUBSISTENCE-horticultural facility
+AGRICULTURE/SUBSISTENCE-agricultural outbuilding
+AGRICULTURE/SUBSISTENCE-irrigation facility
+INDUSTRY/PROCESSING/EXTRACTION-manufacturing facility
+INDUSTRY/PROCESSING/EXTRACTION-extractive facility
+INDUSTRY/PROCESSING/EXTRACTION-waterworks
+INDUSTRY/PROCESSING/EXTRACTION-energy facility
+INDUSTRY/PROCESSING/EXTRACTION-Subcategory:communications facility
+INDUSTRY/PROCESSING/EXTRACTION-processing site
+INDUSTRY/PROCESSING/EXTRACTION-industrial storage
+HEALTH CARE-hospital
+HEALTH CARE-clinic
+HEALTH CARE-sanitarium
+HEALTH CARE-medical business/office
+HEALTH CARE-resort
+DEFENSE-arms storage
+DEFENSE-fortification
+DEFENSE-military facility
+DEFENSE-battle site
+DEFENSE-coast guard facility
+DEFENSE-naval facility
+DEFENSE-air facility
+LANDSCAPE-parking lot 
+LANDSCAPE-park
+LANDSCAPE-plaza
+LANDSCAPE-Subcategory:garden
+LANDSCAPE-Subcategory:forest
+LANDSCAPE-unoccupied land
+LANDSCAPE-underwater
+LANDSCAPE-natural feature
+LANDSCAPE-street furniture/object
+LANDSCAPE-conservation area
+TRANSPORTATION-rail-related
+TRANSPORTATION-air-related
+TRANSPORTATION-water-related
+TRANSPORTATION-road-related (vehicular) 
+TRANSPORTATION-pedestrian-related
+WORK IN PROGRESS
+UNKNOWN
+VACANT/NOT IN USE
+OTHER

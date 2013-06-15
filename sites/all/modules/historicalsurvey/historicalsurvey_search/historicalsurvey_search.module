@@ -1,0 +1,585 @@
+<?php
+
+include_once('historicalsurvey_search.queries.inc');
+include_once('historicalsurvey_search.theme.inc');
+
+
+/**
+ * Implements hook_menu().
+ */
+function historicalsurvey_search_menu() {
+  $items['places'] = array(
+    'page callback' => 'historicalsurvey_search_view',
+    'access arguments' => array('access historicalsurvey_search'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['search/results'] = array(
+    'title' => 'Search Results',
+    'page callback' => 'historicalsurvey_search_results_view',
+    'access arguments' => array('access historicalsurvey_search'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  $items['search/review'] = array(
+    'page callback' => 'historicalsurvey_search_review_view',
+    'access arguments' => array('access historicalsurvey_search_review'),
+    'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'historicalsurvey_search.review.inc',
+  );
+  $items['search/edit'] = array(
+    'page callback' => 'historicalsurvey_search_edit_view',
+    'access arguments' => array('access historicalsurvey_search_edit'),
+    'type' => MENU_SUGGESTED_ITEM,
+    'file' => 'historicalsurvey_search.edit.inc',
+  );
+  $items['search/cancel'] = array(
+    'page callback' => 'historicalsurvey_search_cancel',
+    'access arguments' => array('access historicalsurvey_search'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+
+function historicalsurvey_search_permission() {
+  return array(
+    'access historicalsurvey_search' => array(
+      'title' => t('Access HistoricalSurvey Search Page'),
+    ),
+    'access historicalsurvey_search_review' => array(
+      'title' => t('Access HistoricalSurvey Batch Review Page'),
+    ),
+    'access historicalsurvey_search_edit' => array(
+      'title' => t('Access HistoricalSurvey Batch Edit Page'),
+    ),
+  );
+}
+
+/**
+ * Displays a search page.
+ */
+function historicalsurvey_search_view() {
+  //$keys=isset($_SESSION['historicalsurvey_search']['keys'])?$_SESSION['historicalsurvey_search']['keys']:FALSE;
+  $keys = NULL;
+  if (isset($_SESSION['historicalsurvey_search'])) {
+    drupal_goto('search/cancel');
+  }
+  //get the search form
+  $ret['form'] = drupal_get_form('historicalsurvey_search_search_form', $keys);
+  return $ret;
+}
+
+
+/**
+ * Display a search form.
+ *
+ * @param $keys
+ *   The search keys entered from the form
+ */
+function historicalsurvey_search_search_form(array $form, array &$form_state, $keys = NULL) {
+  $form = array(
+    '#theme' => 'historicalsuvey_search_form',
+  );
+
+  $form['keys'] = array(
+    '#tree' => TRUE,
+  );
+  $form['keys']['options'] = array(
+    '#tree' => TRUE,
+    '#weight' => -1,
+  );
+
+  $form['keys']['options']['set_type'] = array(
+    '#type' => 'radios',
+    '#default_value' => isset($keys['options']['set_type']) ? $keys['options']['set_type'] : 'union',
+    '#options' => array(
+      'union' => 'Find places that match ANY selected field',
+      'intersect' => 'Find places that match ALL selected fields',
+    ),
+  );
+
+  $field_instances = field_info_instances('node', 'place');
+  //debug_write($field_instances);
+
+  $form['keys']['field_location'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_location']['location'] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 30,
+    '#default_value' => 'e.g. 309 W 11th St',
+  );
+
+  $form['keys']['field_person'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_person']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 30,
+    '#default_value' => 'e.g. Charles Coatsworth Pinkney',
+  );
+
+
+  $form['keys']['field_name'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_name']['options'] = array(
+    '#tree' => TRUE,
+    '#type' => 'checkboxes',
+    '#options' => array(
+      'historic' => 'Historic',
+      'current' => 'Current',
+    ),
+  );
+  $form['keys']['field_name']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 30,
+    '#default_value' => 'e.g. Queen Theater',
+  );
+
+
+  $options = historicalsurvey_search_options_array('value_use');
+  $form['keys']['field_use'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_use']['options'] = array(
+    '#tree' => TRUE,
+    '#type' => 'checkboxes',
+    '#options' => array(
+      'historic' => 'Historic',
+      'current' => 'Current',
+    ),
+  );
+  $form['keys']['field_use']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Use') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+    //'#multiple' => TRUE,  // need to figure out a nice UI for this
+  );
+  $form['keys']['field_use']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#title' => 'or enter a word or phrase',
+    '#size' => 30,
+    '#default_value' => 'e.g. residence',
+  );
+
+
+  $form['keys']['field_narrative'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_narrative']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 30,
+    '#default_value' => 'e.g. elderberry wine',
+  );
+  $form['keys']['field_narrative']['options'] = array(
+    '#tree' => TRUE,
+    '#type' => 'checkboxes',
+    '#options' => array(
+      'overview' => 'Overview',
+      'significance' => 'Significance',
+      'history' => 'History',
+      'integrity' => 'Integrity',
+      'description' => 'Physical Description',
+      'references' => 'References',
+      'features' => 'Character-Defining Features',
+    ),
+  );
+
+
+  $form['keys']['field_construction_year'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_construction_year']['year_early'] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#title' => 'From',
+    '#size' => 4,
+    '#default_value' => 'e.g. 1940',
+  );
+  $form['keys']['field_construction_year']['year_late'] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#title' => 'To',
+    '#size' => 4,
+    '#default_value' => 'e.g. 1945',
+  );
+
+
+  $options = historicalsurvey_search_options_array('value_survey_effort');
+  $form['keys']['field_survey_effort'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_survey_effort']['select']  = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Survey Effort') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+  );
+
+  $options = historicalsurvey_search_options_array('value_tag');
+  $form['keys']['field_tag'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_tag']['select'] = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Tag') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+  );
+
+  $options = historicalsurvey_search_options_array('value_designation');
+  
+  $form['keys']['field_designation_official'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_designation_official']['select'] = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Designation') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+  );
+
+  $options = historicalsurvey_search_options_array('value_status');
+  $form['keys']['field_status'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_status']['select'] = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Status') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+  );
+
+  $options = historicalsurvey_search_options_array('value_place_type');
+  $form['keys']['field_place_type'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_place_type']['select'] = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Type') + $options,
+    '#prefix' => '<div class="styled-select">',
+    '#suffix' => '</div>',
+  );
+
+  $options = historicalsurvey_search_options_array('value_style');
+  $form['keys']['field_style'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_style']['text'][]  = array(
+    '#tree' => TRUE,
+    '#type' => 'select',
+    '#options' => (empty($options)) ? array('none available') : array('Select a Style') + $options,
+  );
+  $form['keys']['field_style']['text'][] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#title' => 'or enter a word or phrase',
+    '#size' => 30,
+    '#default_value' => 'e.g. modern',
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  //debug_write($form);
+  return $form;
+}
+
+
+/**
+ * Display an address search form.
+ *
+ * @param $keys
+ *   The search keys entered from the form
+ */
+function historicalsurvey_search_address_search_form(array $form, array &$form_state, $keys = NULL) {
+  $form = array(
+    '#theme' => 'historicalsuvey_address_search_form',
+  );
+
+  $form['keys'] = array(
+    '#tree' => TRUE,
+  );
+
+  $form['keys']['field_location'] = array(
+    '#tree' => TRUE,
+    '#type' => 'container',
+  );
+  $form['keys']['field_location']['location'] = array(
+    '#tree' => TRUE,
+    '#type' => 'textfield',
+    '#size' => 48,
+    '#default_value' => 'Find an Address',
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+  
+  //dw($form);
+  return $form;
+}
+
+/**
+ * Validation callback for historicalsurvey_search_search_form().
+ */
+function historicalsurvey_search_search_form_validate(array $form, array &$form_state) {
+
+  //dw($form_state['values']['keys']);
+
+  //get rid of the empties
+  $keys = array();
+  foreach ($form_state['values']['keys'] as $field_name => $key_array) {
+    if (is_array($key_array) && $field_name !== 'options') {
+      foreach ($key_array as $key => $element) {
+        if (!is_array($element)) {
+          if (!empty($element)) {
+            $keys[$field_name] = $key_array;
+          }
+        }
+        else {
+          foreach ($element as $option_key => $option) {
+            if (!empty($option)) {
+              $keys[$field_name] = $key_array;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //if field options all left blank, select them all
+  foreach ($keys as $field_name => $key_array) {
+    if (isset($key_array['options'])) {
+      $all_blank = TRUE;
+      foreach ($key_array['options'] as $value) {
+        if (!empty($value)) {
+          $all_blank = FALSE;
+        }
+      }
+      if ($all_blank) {
+        foreach ($key_array['options'] as $suffix => $value) {
+          $keys[$field_name]['options'][$suffix] = $suffix;
+        }
+      }
+    }
+  }
+  if (isset($keys['field_construction_year'])) {
+    if (!empty($keys['field_construction_year']['year_early']) && !empty($keys['field_construction_year']['year_late'])) {
+      if ($keys['field_construction_year']['year_late'] < $keys['field_construction_year']['year_early']) {
+        form_set_error('', "The years cannot be in the wrong order.");
+        drupal_goto('places'); //to reset the default-value help text
+      }
+    }
+    if (!empty($keys['field_construction_year']['year_early']) && !is_numeric($keys['field_construction_year']['year_early'])) {
+      form_set_error('', "The years must be numbers.");
+      drupal_goto('places'); //to reset the default-value help text
+    }
+    if (!empty($keys['field_construction_year']['year_late']) && !is_numeric($keys['field_construction_year']['year_late'])) {
+      form_set_error('', "The years must be numbers.");
+      drupal_goto('places'); //to reset the default-value help text
+    }
+  }
+
+  if (empty($keys)) {
+    form_set_error('', "Please select or enter at least one value.");
+    drupal_goto('places'); //to reset the default-value help text
+  }
+  else {
+    $_SESSION['historicalsurvey_search']['options'] = $form_state['values']['keys']['options'];
+    $_SESSION['historicalsurvey_search']['keys'] = $keys;
+  }
+}
+
+/**
+ * Validation callback for historicalsurvey_search_address_search_form().
+ */
+function historicalsurvey_search_address_search_form_validate(array $form, array &$form_state) {
+
+  //dw($form_state['values']['keys']);
+
+  //get rid of the empties
+  $keys = array();
+  foreach ($form_state['values']['keys'] as $field_name => $key_array) {
+    if (is_array($key_array) && $field_name !== 'options') {
+      foreach ($key_array as $key => $element) {
+        if (!is_array($element)) {
+          if (!empty($element)) {
+            $keys[$field_name] = $key_array;
+          }
+        }
+        else {
+          foreach ($element as $option_key => $option) {
+            if (!empty($option)) {
+              $keys[$field_name] = $key_array;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //if field options all left blank, select them all
+  foreach ($keys as $field_name => $key_array) {
+    if (isset($key_array['options'])) {
+      $all_blank = TRUE;
+      foreach ($key_array['options'] as $value) {
+        if (!empty($value)) {
+          $all_blank = FALSE;
+        }
+      }
+      if ($all_blank) {
+        foreach ($key_array['options'] as $suffix => $value) {
+          $keys[$field_name]['options'][$suffix] = $suffix;
+        }
+      }
+    }
+  }
+  
+  if (empty($keys)) {
+    form_set_error('', "Please select or enter at least one value.");
+    drupal_goto('places'); //to reset the default-value help text
+  }
+  else {
+    $_SESSION['historicalsurvey_search']['options'] = $form_state['values']['keys']['options'];
+    $_SESSION['historicalsurvey_search']['keys'] = $keys;
+  }
+}
+
+/**
+ * Submit callback for historicalsurvey_search_search_form().
+ */
+function historicalsurvey_search_search_form_submit(array $form, array &$form_state) {
+  $form_state['redirect'] = 'search/results';
+}
+/**
+ * Submit callback for historicalsurvey_search_address_search_form().
+ */
+function historicalsurvey_search_address_search_form_submit(array $form, array &$form_state) {
+  $form_state['redirect'] = 'search/results';
+}
+
+
+/**
+ * Displays a search results page.
+ */
+function historicalsurvey_search_results_view() {
+
+  //get keys from session if theyve been set already
+  $keys = isset($_SESSION['historicalsurvey_search']['keys']) ? $_SESSION['historicalsurvey_search']['keys'] : FALSE;
+  $options = isset($_SESSION['historicalsurvey_search']['options']) ? $_SESSION['historicalsurvey_search']['options'] : FALSE;
+  //unset($_SESSION['historicalsurvey_search']['keys']);  
+  
+  //paginate
+  $pager['num_per_page'] = 10;
+  $pager['page'] = pager_find_page();
+  $pager['offset'] = $pager['page'] * $pager['num_per_page'];
+
+  //get and set results if there are keys submitted
+  if ($keys) {
+    $ret['results'] = historicalsurvey_search_get_query_results($keys, $options, $pager); //historicalsurvey_search.queries.inc
+    
+    $ret['results']['#theme'] = 'historicalsurvey_search_results';
+    $ret['results']['#view_mode'] = 'historicalsurvey_search_result';
+    $ret['results']['#keys'] = $keys;
+        
+    pager_default_initialize($ret['results']['#results']['result count'], $pager['num_per_page']);
+    $ret['results']['#pager'] = theme('pager');
+
+  }
+  else {
+    drupal_goto('search/cancel');
+  }
+  return $ret;
+}
+
+
+function historicalsurvey_search_cancel() {
+  unset($_SESSION['historicalsurvey_search']);
+  if (isset($_GET['destination']) && drupal_valid_path($_GET['destination'])) {
+    drupal_goto($_GET['destination']);
+  }
+  else {
+    drupal_goto('places');
+  }
+}
+
+
+/**
+ * returns a array for use with #options in a form field
+ * */
+function historicalsurvey_search_options_array($machine_name) {
+
+  $options = array();
+  $v = taxonomy_vocabulary_machine_name_load($machine_name);
+  
+  if (!empty($v)) {
+    $terms = taxonomy_get_tree($v->vid);
+    
+    foreach($terms as $key=>$term) {
+      $terms[$term->tid]=$term;
+      unset($terms[$key]);
+    }
+
+    foreach ($terms as $term) {
+      if(!empty($term->parents[0])) {
+        $term->name = ' -- '.$term->name;
+      }   
+      
+      //style and use store terms in text fields instead of term fields
+      if ($machine_name == 'style' || $machine_name == 'use') {
+        $options[$term->name] = $term->name;
+      }
+      else {
+        $options[$term->tid] = $term->name;
+      }   
+      
+    }
+  }
+  
+  return $options;
+}
+
+
+
+/**
+ * Implements hook_search_api_alter_callback_info()
+ * Adds all the field's most current values to the search index
+ * via callback class HistoricalSurveySearchAddRevisions in includes/callback_add_revisions.inc
+ */
+function historicalsurvey_search_search_api_alter_callback_info() {
+  $callbacks['search_api_alter_add_revisons'] = array(
+    'name' => t('Add Revisions'),
+    'description' => t('Adds field revisions to index'),
+    'class' => 'HistoricalSurveySearchAddRevisions',
+  );
+  return $callbacks;
+}
+
+
+

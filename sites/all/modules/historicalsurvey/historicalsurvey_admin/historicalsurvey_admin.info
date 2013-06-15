@@ -1,0 +1,8 @@
+name = HistoricalSurvey Admin Module
+description = Functions for Admin (User 1)
+core = 7.x
+package = HistoricalSurvey
+
+;project = historicalsurvey_admin
+;version = 7.x-1.0
+;project status url = http://historicalsurvey.org/drupal-updates/release-history

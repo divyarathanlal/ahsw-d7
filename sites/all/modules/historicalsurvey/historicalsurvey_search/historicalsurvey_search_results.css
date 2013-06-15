@@ -1,0 +1,157 @@
+body{
+  background-color:#eee;
+}
+
+.page-search-results #search-results-wrapper{
+  outline: 1px solid #CCC;
+  background-color: white;
+  clear:both;
+}
+
+.page-search-results #map-wrapper{
+  width:640px;
+  border:none;
+  border-left:4px solid #ddd
+}
+
+#search-results-stats{
+  margin-top: 10px;
+}
+
+#search-result-result-count{
+  font-weight: bold;
+  background-color: #eee;
+  padding: 5px;
+}
+
+#search-result-result-key-wrapper{
+  padding: 10px 10px 5px 10px;
+  border-bottom: 1px solid #aaa;
+}
+
+
+#search-result-key{
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+#search-result-key #search-results-key-fields{
+  font-size: 0.8em;
+  color: #888;
+}
+
+#search-result-key #search-results-keys{
+  font-weight: bold;
+}
+
+#search-result-go-back{
+  text-align:right;
+}
+#search-result-go-back a{
+  font-size: 0.8em;
+  color:darkblue;
+  text-decoration:none;
+}
+
+ol.search-results{
+  height: 385px;
+  overflow:auto;
+}
+
+li.search-result{
+  margin-bottom: 20px;
+}
+
+.result-wrapper .results{ 
+  width: 165px;
+  display: inline-block;
+  vertical-align:top;
+  background-color:#eee;
+  min-height:87px;
+}
+
+li.search-result .photo{  
+  height:75px;
+  width:75px;
+  display: inline-block;
+  vertical-align:top;
+  z-index:10;
+}
+li.search-result .photo.empty{    
+  color:#aaa;
+  border:1px solid #eee;  
+}
+
+li.search-result .type{
+  font-weight:normal;
+  font-style:italic;
+}
+li.search-result .info{
+  font-size: .8em;
+  font-weight:bold
+}
+
+li.search-result .link{  
+  float:right;
+  padding-right:5px;
+}
+
+li.search-result a{  
+  font-size: 0.8em;
+  color:darkblue;
+  text-decoration:none;
+}
+
+.result-wrapper{
+}
+
+#result{
+  padding: 5px;
+}
+
+#result-title{
+  font-size: 0.8em;
+  color: #888;
+}
+
+#result-value{
+  padding-left: 5px;
+
+}
+#result-value p{
+  padding:0;
+  margin:0;
+}
+
+#search-results-bottom{
+  padding:10px;
+  border-top: 1px solid #aaa;
+}
+
+#search-results-bottom a{  
+  font-size: 0.8em;
+  color:darkblue;
+  text-decoration:none;
+}
+
+#search-results-empty{
+  font-size: .8em;
+}
+
+#pager{
+  
+}
+#pager li{
+  font-size:0.8em;
+  padding: 0 4px;
+}
+#pager li.pager-current{
+  font-size:1em
+}
+#pager a{
+  color:black;
+  text-decoration:none;
+}
+#pager a:hover{
+  text-decoration:underline;
+}

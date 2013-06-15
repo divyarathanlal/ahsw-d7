@@ -1,0 +1,399 @@
+<?php
+
+include_once('historicalsurvey_place.theme.inc');
+
+/**
+ *
+ * HistoricalSurvey Places module
+ *
+ * This module adds creates the "Place" content type, including:
+ * 1. Creates an admin interface for controlling custom persistant variables
+ * 2. Creates new field instances (depends on historicalsurvey_fields module for field definitions)
+ * 3. Defines CRUD opeations for places
+ *
+ * historicalsurvey_place.install : installs content type and field instances
+ * historicalsurvey_place.module : contains Drupal API hooks
+ * historicalsurey_place.admin.inc : contains admin functions
+ * historicalsurey_place.create.inc : contains create functions
+ * historicalsurey_place.theme.inc : contains theme processing functions
+ * historicalsurey-place-layout.tpl.php : theme template for place view and edit pages
+ *
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function historicalsurvey_place_menu() {
+  $items = array();
+
+  //Admin
+  $items['admin/config/content/historicalsurvey_place'] = array(
+    'title' => 'HistoricalSurvey Place - Fields settings',
+    'description' => 'Configuration for HistoricalSurvey Place Fields',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_place_config_form'),
+    'access arguments' => array('administer nodes'),
+    'file' => 'historicalsurvey_place.admin.inc',
+  );
+  $items['admin/config/content/historicalsurvey_place'] = array(
+    'title' => 'HistoricalSurvey Place - New Places settings',
+    'description' => 'Configuration for Create New Places form functions',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_place_config_form'),
+    'access arguments' => array('administer nodes'),
+    'file' => 'historicalsurvey_place.admin.inc',
+  );
+
+  //Create Place multi-step form pages
+  $items['place/new'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_place_add_place_form'),
+    'access arguments' => array('create place content'),
+    'file' => 'historicalsurvey_place.create.inc',
+  );
+  $items['place/new/address'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_place_add_place_address_form'),
+    'access arguments' => array('create place content'),
+    'file' => 'historicalsurvey_place.create.inc',
+  );
+  $items['place/new/map'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('historicalsurvey_place_add_place_map_form'),
+    'access arguments' => array('create place content'),
+    'file' => 'historicalsurvey_place.create.inc',
+  );
+  $items['place/new/cancel'] = array(
+    'page callback' => 'historicalsurvey_place_add_place_cancel',
+    'access arguments' => array('create place content'),
+    'file' => 'historicalsurvey_place.create.inc',
+  );
+  
+  //Photo and Document upload page
+  $items['place/%node/upload'] = array(
+    'title' => 'Upload Photos and Documents',
+    'page callback' => 'historicalsurvey_place_upload',
+    //'page callback' => 'node_page_edit',
+    'page arguments' => array(1),
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+  );
+
+  //other pages
+  $items['privacy-policy'] = array(
+    'page callback' => 'historicalsurvey_place_privacy_policy_page',
+    'access arguments' => array('access content'),
+  );
+  $items['guide'] = array(
+    'page callback' => 'historicalsurvey_place_guide_page',
+    'access arguments' => array('access content'),
+  );
+  return $items;
+}
+
+
+/**
+ * Implements hook_menu_alter().
+ */
+function historicalsurvey_place_menu_alter(&$items) {
+  //dw($items['node/%node']);
+  $items['node/add/place']['page callback'] = 'historicalsurvey_place_add_place_cancel';
+  $items['node/add/place']['file'] = 'historicalsurvey_place.create.inc';
+  $items['node/add/place']['file path'] = drupal_get_path('module', 'historicalsurvey_place');
+  
+}
+
+
+/**
+ * Callback for 'place/%node/upload'
+ */
+function historicalsurvey_place_upload($node) {
+  module_load_include('inc', 'node', 'node.pages');
+  $form = drupal_get_form('place_node_form',$node);
+  $form['#theme'] = array('place_node_upload_form');
+
+  return $form;
+}
+
+
+// Implements hook_forms() to add node.pages.inc for upload form
+function historicalsurvey_place_forms(){
+  module_load_include('inc', 'node', 'node.pages');
+}
+
+
+/**
+ *  Implements hook_form_BASE_FORM_ID_alter().
+ *  Adds buttons and callbacks for Place Edit Form
+ */
+function historicalsurvey_place_form_place_node_form_alter(&$form, &$form_state, $form_id) {
+
+  $form['#validate'][] = 'historicalsurvey_place_validate';
+
+  //debug_write($form['actions']);
+
+  $form['actions'] = array(
+    '#type' => "actions",
+    'publish' => array(
+      '#access' => user_access('administer content types'),
+      '#type' => 'submit',
+      '#value' => t('Publish'),
+      '#submit' => array("node_form_submit"),
+    ),
+    'moderator' => array(
+      '#type' => 'submit',
+      '#value' => t('Send to Moderator'),
+      '#submit' => array("node_form_submit"),
+    ),
+    'draft' => array(
+      '#type' => 'submit',
+      '#value' => t('Save as Draft'),
+      '#submit' => array("node_form_submit"),
+    ),
+    'cancel' => array(
+      '#type' => 'submit',
+      '#value' => t('Cancel'),
+      '#submit' => array("node_form_submit"),
+    ),
+  );
+  //dw($form);
+}
+
+/**
+ *  Validation callback for Place Edit form
+ */
+function historicalsurvey_place_validate($form, &$form_state) {
+  global $base_url;
+  $lang = $form['language']['#value'];
+  //dw($form_state['clicked_button']);
+  
+  //skip if ajax call
+  if(!isset($form_state['clicked_button']['#ajax'])) {
+
+    //convert blank construction years to NULL
+    $review_levels = variable_get('historicalsurvey_place_review_levels', array());
+    foreach ($review_levels as $level) {
+      $suffix = $level['machine_suffix'];
+      //convert blank construction years to NULL
+      foreach ($form_state['values']['field_construction_year' . $suffix][$lang] as $delta => $value_array) {
+        if (is_numeric($delta)) {
+          if (empty($value_array['actual_early_year'])) {
+            form_set_value($form['field_construction_year' . $suffix][$lang][$delta]['actual_early_year'], NULL, $form_state);
+          }
+          if (empty($value_array['actual_late_year'])) {
+            form_set_value($form['field_construction_year' . $suffix][$lang][$delta]['actual_late_year'], NULL, $form_state);
+          }
+          if (empty($value_array['estimated_early_year'])) {
+            form_set_value($form['field_construction_year' . $suffix][$lang][$delta]['estimated_early_year'], NULL, $form_state);
+          }
+          if (empty($value_array['estimated_late_year'])) {
+            form_set_value($form['field_construction_year' . $suffix][$lang][$delta]['estimated_late_year'], NULL, $form_state);
+          }
+        }
+      }
+    }
+    
+    //convert blank survey efforts to NULL
+    foreach ($form_state['values']['field_survey_effort'][$lang] as $delta => $value_array) {
+      if (is_numeric($delta)) {
+        if (empty($value_array['nid'])) {
+          form_set_value($form['field_survey_effort'][$lang][$delta]['nid'], NULL, $form_state);
+        }
+      }
+    }
+
+    //dont save blank doc fids
+    foreach ($form_state['values']['field_document'][$lang] as $delta => $value_array) {
+      if (is_numeric($delta)) {
+        if (empty($value_array['fid'])) {
+          unset($form_state['values']['field_document'][$lang][$delta]);
+        }
+      }
+    }
+    
+    
+
+    /*clear the auto-filled log*/
+    $form_state['values']['log'] = '';
+    //$form_state['values']['workbench_moderation_state_new']='published';
+
+    /* change the moderation state depending on the button*/
+    if ($form_state['values']['op'] == 'Publish') {
+      $form_state['values']['workbench_moderation_state_new'] = 'published';
+    }
+    elseif ($form_state['values']['op'] == 'Save as Draft') {
+      $form_state['values']['workbench_moderation_state_new'] = 'draft';
+    }
+    elseif ($form_state['values']['op'] == 'Send to Moderator') {
+      $form_state['values']['workbench_moderation_state_new'] = 'in_moderation';
+    }
+    else {
+      drupal_goto($base_url . "/node/" . $form_state['node']->nid);
+    }
+  }
+}
+
+
+/**
+ *  Implements hook_form_BASE_FORM_ID_alter().
+ */
+function historicalsurvey_place_form_user_register_form_alter(&$form, &$form_state, $form_id) {
+  $form['header'] = array(
+    '#type' => 'markup',
+    '#markup' => '<div class="user-register-header">Please register to contribute to the Wiki. You will need to provide your first and last name, which will be displayed publicly on the Wiki with each piece of information that you contribute. '.l('Read the privacy policy.','privacy-policy').' By submitting this form you confirm that you are 18 years or older. </div>',
+    '#weight' => -11,
+  );
+}
+
+/**
+ *  Implements hook_element_info_alter().
+ */
+function historicalsurvey_place_element_info_alter(&$type) {
+
+  //remove the password strength componenet from the user form
+  unset($type['password_confirm']['#process'][1]);
+}
+
+
+/* Callbacks for the other pages */
+
+function historicalsurvey_place_privacy_policy_page() {
+  
+  return
+  '<div id="privacy-policy-container">
+  <h3>Privacy Policy</h3>
+  <p>This policy is to inform visitors to the Austin Historical Survey Wiki (AHS Wiki) of its data gathering methods and use of such data. The City of Austin collects many types of data throughout the AHS Wiki and the degree to which this data is used will be specified below. The City of Austin may change this policy at any time at its sole discretion and without notice.</p>
+
+  <h3>Logs and Activity Reports</h3>
+
+  <p>The Austin Historical Survey Wiki collects data each time a visitor enters the AHS Wiki or moves from one page to the next within the Web site. For users that are not logged onto the AHS Wiki, this information is used to gather statistics about visitors as a whole and in no way points to individuals. If you are not logged into the AHS Wiki, the following statistics are gathered:</p>
+  
+  <ul>
+    <li>1. Time of day of usage
+    <li>2. Day of the week of usage
+    <li>3. Which URL was visited prior to coming to the AHS Wiki.
+    <li>4. Which file you are viewing on the AHS Wiki.
+    <li>5. What browser and version of browser you use.
+    <li>6. Which Operating System you use.
+  </ul>
+<p>If you have created a login and password and you are logged into the AHS Wiki, the following additional personal information is gathered in addition to the statistics listed above:</p>
+  <ul>
+    <li>1. First and last name
+    <li>2. Mailing address
+    <li>3. Contact phone number
+    <li>4. E-mail address
+    <li>5. Type of user and associated permissions to add or modify data
+    <li>6. Your additions and modifications to the AHS Wiki’s database of property records
+    <li>7. Your participation in survey efforts
+  </ul>
+<p>The above information is processed and analyzed to keep the AHS Wiki up to industry standards and to maintain the City of Austin’s inventory of historic properties. Portions of the Web site\'s design and functionality are influenced by the data collected.</p>
+
+<h3>Collection and Use of Information</h3>
+
+<p>The AHS Wiki is a public system for gathering data. All data entered into the AHS Wiki, including the name of the user, along with their contributions to the AHS Wiki, is public information. First name and last name of authenticated users can be publicly viewed on the AHS Wiki and are associated with information that users’ add to the web site. This information is used to provide the source of information about historic properties on the AHS Wiki.</p>
+
+<p>If you do not wish to have your name to appear on the AHS Wiki, but wish to contribute survey data or correct an error, please '.l('report this problem.','contact').'</p>
+
+<p>The City of Austin does not sell or lease personal information. The University of Texas at Austin is developing the AHS Wiki. The University of Texas at Austin does not sell or lease personal information. Members of the Austin Historical Survey Project Team have access to information and may report information about usage in reports and publications related to development of the AHS Wiki.</p>
+
+<p>Information submitted to the AHS Wiki is subject to the Texas Public Information Act. Information about the Texas Public Information Act is available from the Office of the Texas Attorney General at '.l('http://www.oag.state.tx.us/open/requestors.shtml.','http://www.oag.state.tx.us/open/requestors.shtml').'</p>
+
+<p>For questions related to the AHS Wiki web pages or web applications, '.l('contact us.','contact').'</p>
+
+<p>The City of Austin may be required by law enforcement or judicial authorities to provide personally identifiable information to the appropriate governmental authorities. We reserve the right to report to law enforcement agencies any activities that we in good faith believe to be unlawful.</p>
+
+<h3>Security</h3>
+
+<p>This site uses a secure server for conducting online services.</p>
+
+<h3>Cookies</h3>
+
+<p>Cookies are small text files that are stored on the visitor\'s hard drive in order to place certain information regarding the transaction. A session ID, along with time date and other information may be gathered. In order for the transaction to take place, cookies must be enabled by your browser.</p>
+
+<p>The AHS Wiki uses cookies in some of its online services. Visitors to the Web site will be informed of when and where these cookies are present.</p>
+  
+  </div>';
+  
+}
+
+function historicalsurvey_place_guide_page() {
+  //TODO, this
+  return '';
+}
+
+/**
+ *  Helper function for address validation
+ */
+function historicalsurvey_place_get_city($num = FALSE) {
+
+  /* COA_FIPS
+   * Federal Information Processing Standards (Census codes)
+   * see ftp://ftp.ci.austin.tx.us/GIS-Data/Regional/jurisdiction/jurisdiction.htm
+   */
+  $codes = array(
+    '202' => 'AUSTIN 2 MILE ETJ',
+    '205' => 'AUSTIN 5 MILE ETJ',
+    '210' => 'AUSTIN FULL PURPOSE',
+    '211' => 'AUSTIN LIMITED PURPOSE',
+    '305' => 'BASTROP FULL PURPOSE',
+    '306' => 'BASTROP ETJ',
+    '333' => 'BEE CAVE FULL PURPOSE',
+    '334' => 'BEE CAVE ETJ',
+    '562' => 'BRIARCLIFF FULL PURPOSE',
+    '563' => 'BRIARCLIFF ETJ',
+    '625' => 'BUDA FULL PURPOSE',
+    '626' => 'BUDA ETJ',
+    '767' => 'CEDAR PARK FULL PURPOSE',
+    '768' => 'CEDAR PARK ETJ',
+    '1017' => 'CREEDMOOR FULL PURPOSE',
+    '1018' => 'CREEDMOOR ETJ',
+    '1213' => 'DRIPPING SPRINGS FULL PURPOSE',
+    '1214' => 'DRIPPING SPRINGS ETJ',
+    '1330' => 'ELGIN FULL PURPOSE',
+    '1331' => 'ELGIN ETJ',
+    '1600' => 'GEORGETOWN FULL PURPOSE',
+    '1844' => 'HAYS FULL PURPOSE',
+    '1845' => 'HAYS ETJ',
+    '2025' => 'HUTTO FULL PURPOSE',
+    '2026' => 'HUTTO ETJ',
+    '2127' => 'JONESTOWN FULL PURPOSE',
+    '2128' => 'JONESTOWN ETJ',
+    '2285' => 'KYLE FULL PURPOSE',
+    '2286' => 'KYLE ETJ',
+    '2303' => 'LAGO VISTA FULL PURPOSE',
+    '2304' => 'LAGO VISTA ETJ',
+    '2358' => 'LAKEWAY FULL PURPOSE',
+    '2359' => 'LAKEWAY ETJ',
+    '2421' => 'LEANDER FULL PURPOSE',
+    '2422' => 'LEANDER ETJ',
+    '2645' => 'MANOR FULL PURPOSE',
+    '2646' => 'MANOR ETJ',
+    '2897' => 'MOUNTAIN CITY FULL PURPOSE',
+    '2943' => 'MUSTANG RIDGE FULL PURPOSE',
+    '2944' => 'MUSTANG RIDGE ETJ',
+    '3018' => 'NIEDERWALD FULL PURPOSE',
+    '3019' => 'NIEDERWALD ETJ',
+    '3258' => 'PFLUGERVILLE FULL PURPOSE',
+    '3259' => 'PFLUGERVILLE ETJ',
+    '3300' => 'POINT VENTURE FULL PURPOSE',
+    '3640' => 'ROLLINGWOOD FULL PURPOSE',
+    '3675' => 'ROUND ROCK FULL PURPOSE',
+    '3676' => 'ROUND ROCK ETJ',
+    '3787' => 'SAN LEANNA FULL PURPOSE',
+    '4145' => 'SUNSET VALLEY FULL PURPOSE',
+    '4146' => 'SUNSET VALLEY ETJ',
+    '4351' => 'UHLAND FULL PURPOSE',
+    '4463' => 'WEBBERVILLE FULL PURPOSE',
+    '4464' => 'WEBBERVILLE ETJ',
+    '4518' => 'WESTLAKE HILLS FULL PURPOSE',
+    '4519' => 'WESTLAKE HILLS ETJ',
+  );
+
+  return $num ? $codes[$num] : $codes;
+
+}
+
+

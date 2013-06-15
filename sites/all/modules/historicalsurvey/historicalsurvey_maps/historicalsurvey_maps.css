@@ -1,0 +1,158 @@
+
+html { height: 100% }
+
+body { height: 100%; margin: 0; padding: 0 }
+
+#map-wrapper{
+  width:720px;
+  height:445px;
+  border:1px solid #ccc;
+}
+.page-search-results #map-wrapper{
+  height:640px;
+}
+.node-type-place #map-wrapper{
+  width:230px;
+  height:245px;
+  border:none;
+}
+
+#map-canvas { 
+  height: 100%;
+}
+
+
+/* Infowindow */
+.infowindow{
+  margin: 10px;
+  padding:5px;
+  border:1px solid black;
+  background-color:white;
+  /* width:190px; */
+  min-height: 87px;
+}
+
+.infowindow .photo{
+  width:75px;
+  height:75px;
+  display:inline-block;
+  margin-right:5px;
+}
+.infowindow .photo.empty{
+  outline:1px solid #ddd;
+}
+
+.infowindow .info .type{
+  font-weight:normal;
+  font-style:italic;
+  margin-bottom:5px;
+}
+.infowindow .info .name{
+  margin-bottom:5px;
+}
+.infowindow .info{
+  font-size:85%;
+  font-weight:bold;
+  min-height:30px;
+  display:inline-block;
+  width: 92px;
+  vertical-align: top;
+  float:right;
+}
+.infowindow .name{
+  font-size:85%;
+  margin-top: 96px;
+}
+.infowindow .location{
+  height:50px;
+  overflow:hidden;
+}
+.infowindow .empty{
+  font-size:90%;
+  font-weight:normal;
+  color: #999;
+  padding: 5px;
+  font-style: italic;
+}
+
+.infowindow a{
+  font-size:85%;
+  text-decoration:none;
+  color:darkblue;
+  float:left;
+}
+
+.infowindow .link{
+  margin-top:10px;
+}
+
+
+/*Text*/
+.front #welcome{
+  color:#666;
+  margin-bottom:15px;
+}
+#guide-wrapper div {
+  margin-left:auto;
+  margin-right:auto;
+  width:200px;
+  padding:0 5px 5px 5px;
+}
+.front #contribute{
+  width:250px;
+  text-align:center;
+  color:darkblue;
+  font-weight:bold;
+  border:1px solid #999;
+  background-color:#eee;
+}
+
+
+.front #guide-wrapper{
+  height: 515px;
+  padding-top:20px;
+  padding-bottom:20px;
+}
+#address-wrapper {
+  border-bottom: 1px solid #ccc;
+  padding: 0 10px 10px;
+}
+#address-wrapper .form-type-textfield{
+  margin:0;
+}
+#address-wrapper .form-type-textfield  input{
+  font-size:1.9em;
+  padding: 10px;
+  color:#999;
+}
+#address-wrapper .search-title{
+  margin-bottom:10px;
+}
+#address-wrapper .search-field{
+  float:left;
+  margin-right: 10px;
+}
+
+#address-wrapper .search-button{
+  
+}
+#address-wrapper .search-button input{  
+  height: 40px;
+  border: none;
+  background-color: darkblue;
+  color:white;
+  font-weight:bold;
+  margin: 5px 0;
+}
+#address-wrapper .help-text{
+  float:left;
+  margin-top:10px;
+}
+#address-wrapper .help-text a{
+  color:darkblue;
+  text-decoration:none;
+  font-weight:bold;
+}
+#address-wrapper .help-text a:hover{
+  text-decoration:underline;
+}
