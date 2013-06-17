@@ -16,35 +16,30 @@ function historicalsurvey_search_theme() {
   $themes['historicalsurvey_search_results'] = array(
     'template' => 'historicalsurvey-search-results',
     'variables' => array(
-      //'index' => NULL,
       'results' => array('result count' => 0),
-      //'items' => array(),
       'view_mode' => 'historicalsurvey_search_result',
       'keys' => '',
       'pager' => '',
     ),
-    //'file' => 'search_api_page.pages.inc',  //if theme functions are in different file
   );
   $themes['historicalsurvey_search_result'] = array(
     'variables' => array(
-      //'index' => NULL,
       'result' => NULL,
       'item' => NULL,
       'keys' => '',
     ),
-    //'file' => 'search_api_page.pages.inc',
   );
 
   return $themes;
 }
 
 function historicalsurvey_search_preprocess_historicalsuvey_search_form(&$variables) {
-  //dw($variables);
+
   drupal_add_css(drupal_get_path('module', 'historicalsurvey_search') . '/historicalsurvey_search_form.css');
   drupal_add_js(drupal_get_path('module', 'historicalsurvey_search') . '/historicalsurvey_search_form.js');
 }
 function historicalsurvey_search_preprocess_historicalsuvey_address_search_form(&$variables) {
-  //dw($variables);
+
   drupal_add_css(drupal_get_path('module', 'historicalsurvey_search') . '/historicalsurvey_search_form.css');
   drupal_add_js(drupal_get_path('module', 'historicalsurvey_search') . '/historicalsurvey_search_form.js');
 }
@@ -65,21 +60,13 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_results(arra
   drupal_add_css(drupal_get_path('module', 'historicalsurvey_search') . '/historicalsurvey_search_results.css');
   
   if (!empty($variables['results']['results'])) {
-    //load the nodes
-    //$variables['items'] = entity_load('node', array_keys($variables['results']['results']));
-    //$variables['items'] = $variables['index']->loadItems(array_keys($variables['results']['results']));
-
     $_SESSION['historicalsurvey_search']['results'] = $variables['results'];
-    //$_SESSION['historicalsurvey_search']['items'] = $variables['items'];
   }
   
   
-  if(isset($variables['results']['all_nids'])) {
-  
-    $data = historicalsurvey_maps_get_data($variables['results']['all_nids']);
-    
+  if(isset($variables['results']['all_nids'])) {  
+    $data = historicalsurvey_maps_get_data($variables['results']['all_nids']);    
     foreach ($data['locations'] as $nid => $location) {
-      //dw($items);
       $redpins[] = array(
         'lat' => $location['lat'],
         'lng' => $location['lng'],
@@ -112,7 +99,6 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_results(arra
       $search_result .= theme('historicalsurvey_search_result', array(
         'result' => $item,
         'nid' => $nid,
-        //'item' => isset($variables['items'][$item['id']]) ? $variables['items'][$item['id']] : NULL,
         'keys' => $variables['keys'],
         'location' => $variables['location'][$nid],
         'infowindow_data' => $variables['infowindows'][$nid]
@@ -121,13 +107,13 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_results(arra
       $variables['results_themed']['#markup'] .= $search_result;
     }
   }
-  //dw($variables['keys']);
   $variables['keys_themed']['#markup'] = '';
   foreach ($variables['keys'] as $field_name => $result_array) {
 
     //format the field name
     $field_name_suffix = '';
     foreach ($result_array as $element_name => $element) {
+    
       //format the field name options
       if ($element_name == 'options') {
         foreach ($element as $option) {
@@ -152,6 +138,7 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_results(arra
       }
       elseif ($element_name != 'options') {
         if($element_name == 'select') {
+        
           //then its a term key
           $term = taxonomy_term_load($element);
           $keys_formatted = $term->name . ' <small>(' . $element . ')</small>, ';
@@ -225,13 +212,8 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_result(&$var
  *   - keys: The keywords of the executed search.
  */
 function theme_historicalsurvey_search_result(array $variables) {
-  //dw($variables['result'],'',1);
 
   $html = '<div class="search-result" id="search-result-' . $variables['location']['nid'] . '">';
-
-  /* $html .= '<div class="link">';
-  $html .= l('View This Place', 'place/'.$variables['nid']);
-  $html .= '</div>'; //link  */  
 
   $html .= '<div class="info-wrapper">';
   $location = '';
@@ -289,29 +271,6 @@ function theme_historicalsurvey_search_result(array $variables) {
       else {
         $result_value .= '<p>' . $values['values'] . '</p>';
       }
-      
-      
-      /* if (!empty($value) && $field_name != $value) {
-        //then its a text field; prepare it, highlight it if there is no auto-highlighted excerpt already
-        if (!empty($variables['result']['excerpt'])) {
-          $result_value = $variables['result']['excerpt'];
-        }
-        else {
-          $field_array = field_view_field('node', $variables['item'], $field_name);
-          $result_value = render($field_array);
-          //highlight
-          foreach ($text_keys as $key) {
-            $result_value = str_replace($key, '<strong>' . $key . '</strong>', $result_value);
-            $result_value = str_replace(ucwords($key), '<strong>' . ucwords($key) . '</strong>', $result_value);
-          }
-        }
-      }
-      else {
-        //non-text fields, just render the field
-        $field_array = field_view_field('node', $variables['item'], $field_name);
-        $result_value = render($field_array);
-      } */
-      
       
       $text .= '<div id="result">';
       $text .= '<div id="result-title">' . $field_label . ': </div>';

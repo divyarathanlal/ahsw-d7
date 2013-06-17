@@ -18,10 +18,6 @@ function historicalsurvey_fields_field_formatter_info(){
       'label' => t("Default"),
       'field types' => array('historicalsurvey_text'),
     ),
-    /* 'historicalsurvey_text_type_formatter' => array(
-      'label' => t("Default"),
-      'field types' => array('historicalsurvey_text_type'),
-    ), */
     'historicalsurvey_term_reference_formatter' => array(
       'label' => t("Default"),
       'field types' => array('historicalsurvey_term_reference'),
@@ -43,39 +39,6 @@ function historicalsurvey_fields_field_formatter_info(){
       'field types' => array('historicalsurvey_document'),
     ),
   );
-}
-
-
-/*
- * Implements hook_field_formatter_prepare_view() 
- * 
- *  - Load each field's revision history into $items, for use by field formatters theme function 
-    - This function is called separately for each field
-    _ NO NEED FOR THIS NOW THAT WE USE HOOK_FIELD_LOAD
- */
-function historicalsurvey_fields_field_formatter_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items, $displays){
-
-  //dw($items,$field['field_name'],1);  
-  
-   /* if(!in_array($field['field_name'],array('field_photo','field_document'))){
-  
-    foreach($items as $nid=>$revision){
-      foreach($revision as $vid=>$node){    
-        if(!empty($node->{$field['field_name']}[$langcode])) {
-          $revisions[$vid]=$node->{$field['field_name']}[$langcode];
-          $revisions[$vid]['#revision_timestamp']=$node->revision_timestamp;
-          $revisions[$vid]['#revision_uid']=historicalsurvey_fields_get_uids($field['field_name'],$nid,$vid);   
-        }
-      }
-      if(isset($revisions)){
-        $items[$nid]=array(
-          'revisions' => $revisions,    
-          'notes' => array(),
-        );
-      }
-      unset($revisions);
-    }
-  } */ 
 }
 
 
@@ -122,14 +85,6 @@ function historicalsurvey_fields_field_formatter_view($entity_type, $entity, $fi
         '#entity' => $entity,
       );
     break;
-/*     case 'historicalsurvey_text_type_formatter':    
-      $element = array(
-        '#theme' => 'historicalsurvey_text_type_formatter_element_theme',
-        '#items' => $items,
-        '#field' => $instance,
-        '#entity' => $entity,
-      );
-    break; */
     case 'historicalsurvey_term_reference_formatter':     
       $element = array(
         '#theme' => 'historicalsurvey_term_reference_formatter_element_theme',

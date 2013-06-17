@@ -19,11 +19,15 @@ function historicalsurvey_place_theme($existing, $type, $theme, $path) {
     'place_node_form' => array(
       'template' => 'historicalsurvey-place-layout',
       'render element' => 'form',
-    ),
-    
+    ),    
     'place_node_upload_form' => array(
       'template' => 'historicalsurvey-place-upload-layout',
       'render element' => 'form',
+    ),
+    
+    'historicalsurvey_guide_page_theme' => array(
+      'template' => 'historicalsurvey-guide-page',
+      'variables' => array(),
     ),
   );
 }
@@ -50,10 +54,21 @@ function historicalsurvey_place_preprocess_historicalsurvey_place_layout(&$varia
   $variables['table_order'] = historicalsurvey_fields_get_table_order();
   $variables['op'] = 'view';
   
-  //dw($variables['content']['field_location']['#object']);
-  
+  //Text for the header bar, if the Place is not published
   if(isset($variables['content']['field_location']['#object']->nid)) {
     $nid=$variables['content']['field_location']['#object']->nid;
+    $current_state = $variables['content']['field_location']['#object']->workbench_moderation['current']->state;
+    
+    if($current_state == 'in_moderation') {
+      $variables['current_state'] = '<div id="current-state" class="in-moderation">This Place is currently in the moderation queue.</div>';
+    }
+    elseif($current_state == 'draft') {
+      $variables['current_state'] = '<div id="current-state" class="draft">This Place is currently in Draft.</div>';
+    }
+    else{
+      $variables['current_state']=FALSE;
+    }
+    
   }else{
     drupal_goto('');
   }
@@ -65,10 +80,17 @@ function historicalsurvey_place_preprocess_historicalsurvey_place_layout(&$varia
     'lat' => $locations[$nid]['lat'],
     'location' => $locations[$nid],
   );
+
   $variables['content']['map'] = array(
     '#theme' => 'historicalsurvey_map',
     '#redpins' => $redpin ? $redpin : array(),
     '#viewmode' => 'mini',
+  );
+  
+  //add the guide  
+  $variables['content']['guide'] = array(
+    '#theme' => 'historicalsurvey_guide_block_theme',
+    '#context' => 'view',
   );
 }
 
@@ -77,8 +99,6 @@ function historicalsurvey_place_preprocess_historicalsurvey_place_layout(&$varia
  *  The non-form fields use same layout as historicalsurvey_fields_layout theme
  */
 function historicalsurvey_place_preprocess_place_node_form(&$variables) {
-  //$node_array=(array) node_load(3932);
-  //dw($node_array['content']);
 
   /* for non-form fields */
   $variables['content'] = isset($variables['form']['#node']) ? node_view($variables['form']['#node']) : array();
@@ -97,20 +117,35 @@ function historicalsurvey_place_preprocess_place_node_form(&$variables) {
   //edit map
   $vids=array_keys($variables['content']['field_location']['#items']['revisions']);
   $vid = reset($vids);
+
   $redpin[] = array(
     'lng' => $variables['content']['field_location']['#items']['revisions'][$vid][0]['x'],
     'lat' => $variables['content']['field_location']['#items']['revisions'][$vid][0]['y'],
   );  
-  /* $variables['form']['instructions'] = array(
-    '#type' => 'item',
-    '#weight' => 1,
-    '#markup' => 'test',
-  ); */
+  
   $variables['form']['map'] = array(
     '#type' => 'item',
     '#theme' => 'historicalsurvey_map',
     '#redpins' => $redpin ? $redpin : array(),
     '#viewmode' => 'create',
+  );  
+
+  //Text for the header bar, if the Place is not published
+  $current_state = $variables['content']['field_location']['#object']->workbench_moderation['current']->state;
+  if($current_state == 'in_moderation') {
+    $variables['current_state'] = '<div id="current-state" class="in-moderation">This Place is currently in the moderation queue.</div>';
+  }
+  elseif($current_state == 'draft') {
+    $variables['current_state'] = '<div id="current-state" class="draft">This Place is currently in Draft.</div>';
+  }
+  else{
+    $variables['current_state']=FALSE;
+  }
+  
+  //add the guide  
+  $variables['content']['guide'] = array(
+    '#theme' => 'historicalsurvey_guide_block_theme',
+    '#context' => 'edit',
   );
 }
 
@@ -133,11 +168,38 @@ function historicalsurvey_place_preprocess_place_node_upload_form(&$variables) {
     '#viewmode' => 'mini',
   );
 
-  //module_load_include('inc', 'node', 'node.pages');
   foreach (array_keys(field_info_instances('node','place')) as $field_name) {
     if(!in_array($field_name, array('field_photo','field_document'))) {
       hide($variables['form'][$field_name]);
     }
   }
+}
+
+/*  Theme function for guide block*/
+function theme_historicalsurvey_guide_block_theme($variables) {
+  $html = '<p class="title">Tips</p>';
   
+  if($variables['context'] == 'view') {
+    $pencil = theme('image',array('path'=>drupal_get_path('module', 'historicalsurvey_place')."/img/pencil.png"));
+    
+    $html .= '<p>The edit button '.$pencil.' will show up when hovering over each field. However, you must be logged-in to edit.';
+    
+    $html .= '<p>Each field in the table below can contain data at three different review levels:</p>';
+    
+    $html .= '<p><strong>Unreviewed</strong> data has been submitted by the general public.</p>';
+    $html .= '<p><strong>Professional</strong> data has been submitted or promoted by a professional in architectural history and/or preservation.</p>';
+    $html .= '<p><strong>Preservation Office</strong> data has been submitted or promoted by the City of Austin\'s '.l("Historic Preservation Office","http://austintexas.gov/department/historic-preservation").'</p>';
+  }
+  elseif($variables['context'] == 'edit'){
+    $html .= "<p>Use the text fields and select buttons in each field to contribute information about this place. You can only submit data at the Unreviewed level.</p>";
+    
+    $html .= "<p>Be sure to add notes and sources for your information. Textboxes for this will show up at the bottom of the page when you click to edit each field.</p>";
+    
+    $html .= "<p>Use the link to the left to add and edit data about Photos and Documents.</p>";
+    
+    $html .= "<p>Your contributions will be submitted to the moderation queue where we only check for spam and blatently inappropriate submissions before publishing.</p>";
+  }
+  $html .= "<p class='more-link'>View more tips at the ".l("User Guide","guide").'</p>';
+  
+  return $html;
 }

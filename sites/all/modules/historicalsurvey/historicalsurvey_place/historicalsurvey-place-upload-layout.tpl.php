@@ -1,14 +1,5 @@
 <?php
 
-/**
- * @file
- *
- * Available variables:
- * 
- * 
- */
-  //print drupal_get_path('module', 'historicalsurvey_fields') . '/css/historicalsurvey_fields_upload.css
-
 ?> 
     <div class="grid-12 block full" id="top-upload-wrapper">   
       <div class="field-wrapper grid-12" id="field-location-wrapper">
@@ -46,8 +37,8 @@
     $form['additional_settings']['#theme_wrappers']=array('container');
     $form['additional_settings']['#attributes']=array('class'=>array('grid-12','full'));
      drupal_render($form['additional_settings']);
-  }else{
-    hide($form['additional_settings']);
+  }else{    
+    hide($form['additional_settings']['group']);
   }
   print drupal_render_children($form);   
   ?>

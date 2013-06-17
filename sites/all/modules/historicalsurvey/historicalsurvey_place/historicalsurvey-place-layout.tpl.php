@@ -15,20 +15,23 @@
  
  
   global $base_url;
+  global $user;
   $nid=is_numeric(arg(1))?arg(1):'';
 
-  //JQuery UI Effects core, for animation functions
-  //drupal_add_library('system', 'effects');   global $user;
   if($op=='edit' && !user_access("edit any place content")) {
-    drupal_goto('admin');  //temp
+    drupal_goto('access-denied');
   }
   if($op=='view'){drupal_add_js(drupal_get_path('module', 'historicalsurvey_place').'/js/historicalsurvey_place.view.js');}
   if($op=='edit'){drupal_add_js(drupal_get_path('module', 'historicalsurvey_place').'/js/historicalsurvey_place.edit.js');}
 
-  //dw(array_keys($content));
   
 ?>
 <div class="lightbox-shadow"></div>
+<?php 
+  if($current_state){
+    print '<div class="grid-12 current-state-wrapper">'.$current_state.'</div>';
+  }
+?>
 <div class="grid-12 full" id="top-block-wrapper"> 
 
   <!-- Unreviewed Fields, row 1 -->
@@ -78,7 +81,7 @@
   
   <!-- Guide -->
   <div class="block grid-3 full-right" id="guide-wrapper">
-    <div>Guide</div>
+    <div id="guide-inner-wrapper"><?php print render($content['guide']); ?></div>
     <div class="clear" ></div>
   </div>
   
@@ -91,6 +94,7 @@
           print render($form['field_designation_official']);
         }
         else{
+          hide($form['field_designation_official']);
           print render($content['field_designation_official']);
         }
       ?>
@@ -119,7 +123,7 @@
 
 <!-- Reviewed Fields -->
 <div class="grid-12 block full" id="reviewed-fields-wrapper"> 
-  <div class="table-wrapper" id="<?php //print $section_id; ?>"><table id="reviewed-fields">
+  <div class="table-wrapper"><table id="reviewed-fields">
   <col><col><col><col>
     <thead><tr>
       <td class="field-name"><div class="grid-2">Review Level</div></td>
@@ -214,7 +218,7 @@
       $form['additional_settings']['#attributes']=array('class'=>array('grid-12','full'));
       print drupal_render($form['additional_settings']);
     }else{
-      hide($form['additional_settings']);
+      hide($form['additional_settings']['group']);
     }
     print drupal_render_children($form);
   ?>

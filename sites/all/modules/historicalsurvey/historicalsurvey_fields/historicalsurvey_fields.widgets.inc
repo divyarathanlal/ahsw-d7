@@ -18,10 +18,6 @@ function historicalsurvey_fields_field_widget_info(){
       'label' => t("HistoricalSurvey Text Widget"),
       'field types' => array('historicalsurvey_text'),
     ),
-/*     'historicalsurvey_text_type_widget' => array(
-      'label' => t("HistoricalSurvey Text-Type Widget"),
-      'field types' => array('historicalsurvey_text_type'),
-    ), */
     'historicalsurvey_term_reference_widget' => array(
       'label' => t("HistoricalSurvey Term Reference Widget"),
       'field types' => array('historicalsurvey_term_reference'),
@@ -74,16 +70,10 @@ function historicalsurvey_fields_menu() {
 
 /**
   *   Page callback
-  *   For autocomplete fields
+  *   For autocomplete fields, based on taxonomy autocomplete function
   */
 function historicalsurvey_fields_autocomplete($field_name='',$tags_typed='') {
 
-  //$args = func_get_args();
-  // Shift off the $field_name argument.
-  //array_shift($args);
-  //$tags_typed = implode('/', $args);  
-  
-  
   $tags_typed = drupal_explode_tags($tags_typed);
   $tag_last = drupal_strtolower(array_pop($tags_typed));
   
@@ -105,6 +95,7 @@ function historicalsurvey_fields_autocomplete($field_name='',$tags_typed='') {
     if (!empty($tags_typed)) {
       $query->condition('t.name', $tags_typed, 'NOT IN');
     }
+    
     // Select rows that match by term name.
     $tags_return = $query
       ->fields('t', array('tid', 'name'))
@@ -118,6 +109,7 @@ function historicalsurvey_fields_autocomplete($field_name='',$tags_typed='') {
 
     foreach ($tags_return as $tid => $name) {
       $n = $name;
+      
       // Term names containing commas or quotes must be wrapped in quotes.
       if (strpos($name, ',') !== FALSE || strpos($name, '"') !== FALSE) {
         $n = '"' . str_replace('"', '""', $name) . '"';
@@ -130,12 +122,13 @@ function historicalsurvey_fields_autocomplete($field_name='',$tags_typed='') {
 }
 
 /**
- * Form element validate handler for term autocomplete element.
+ * Form Validate Function 
+ * for term autocomplete element, based on taxonomy autocomplete validate
  */
 function historicalsurvey_fields_autocomplete_validate($element, &$form_state) {
+
   // Autocomplete widgets do not send their tids in the form, so we must detect
   // them here and process them independently.
-  
   $value = array();
   $field_name = $element['#parents'][0]; 
   $tags = $element['#value'];
@@ -155,6 +148,7 @@ function historicalsurvey_fields_autocomplete_validate($element, &$form_state) {
     if($tags != $element['#default_value']) {
       if(!empty($typed_terms)) {
         foreach ($typed_terms as $typed_term) {
+        
           // See if the term exists in the chosen vocabulary and return the tid;
           // otherwise, create a new 'autocreate' term for insert/update.
           if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => array($vid)))) { 
@@ -189,11 +183,6 @@ function historicalsurvey_fields_autocomplete_validate($element, &$form_state) {
     }
   
   drupal_array_set_nested_value($form_state['values'], array($field_name,'und'), $tids, TRUE);
-  
-  if($field_name == 'field_survey_effort_tag') {
-    //dw($element);
-    //dw($form_state['values'][$field_name],'',1);
-  }
 }
 
 
@@ -209,26 +198,13 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
   $has_review=FALSE;
   $has_replaced=TRUE;
   $has_changed=TRUE;
-  $has_meta=TRUE;
-  
-  /* if($nid){
-    // get the current revision values to use as default values, instead of $items which doesnt consider revisions
-    $results=historicalsurvey_fields_get_field_revisions($field_name,array($nid => $node));
-    if(!empty($results)){
-      $revisions=$results[$nid];
-      $current=reset($revisions); //reset() returns the first element value
-      $field_values=$current->$field_name;
-      $current_field_values=$field_values[$langcode];
-    }
-  }  */
-  
+  $has_meta=TRUE;  
 
   if(isset($node->{$field_name}[$langcode][$delta])) {
     $items[$delta] = $node->{$field_name}[$langcode][$delta];
   }
   elseif(isset($node->{$field_name}[$langcode]['revisions'])) {
-    $latest = reset($node->{$field_name}[$langcode]['revisions']); //reset() returns the first element value
-    
+    $latest = reset($node->{$field_name}[$langcode]['revisions']);    
     $items[$delta]=isset($latest[$delta])?$latest[$delta]:NULL;
   }
   else{
@@ -252,17 +228,9 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
       );
       $has_review=TRUE;
       break;
-/*     case 'historicalsurvey_text_type_widget':
-      $elements = array(
-        '#type' => 'historicalsurvey_text_type_widget_element',
-        '#default_value'=>isset($items[$delta])?$items[$delta]:NULL,        
-        '#rows' => isset($field['settings']['rows'])?$field['settings']['rows']:1,
-        '#attributes' => array('class' => array('text-full')),
-      );
-      $has_review=TRUE;
-      break; */
     case 'historicalsurvey_text_widget':      
       if(strpos($field['field_name'],'style') || strpos($field['field_name'],'use') || strpos($field['field_name'],'description')){
+      
         //use field wizard
         $elements = array(
           '#type' => 'historicalsurvey_text_widget_element',
@@ -286,9 +254,10 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
         }
       break;
     case 'historicalsurvey_term_reference_widget':
-      //dw($field['field_name'],'',1);
+    
       //we dont have meta data for designations, also, we have a custom widget
       if(strpos($field['field_name'],'designation')){
+      
         //group the designation options by designation type
         $vocabulary = taxonomy_vocabulary_machine_name_load('value_designation');
         $vid=$vocabulary->vid;
@@ -391,15 +360,6 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
           '#default_value'=>0,
         );
       }
-      //remove extra widget if all blank
-      /* if(empty($items[0]['fid'])) {
-        foreach (element_children($elements) as $delta) {
-          if($delta>0) {
-            unset($elements[$delta]);
-          }
-        }
-        $elements['#file_upload_delta'] = 0;
-      } */
       $elements['#attached']['css']=array(
         drupal_get_path('module', 'historicalsurvey_fields') . '/css/historicalsurvey_fields_upload.css',
       ); 
@@ -420,15 +380,6 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
           '#default_value'=>0,
         );
       } 
-      //remove extra widget if all blank
-      /* if(empty($items[0]['fid'])) {
-        foreach (element_children($elements) as $delta) {
-          if($delta>0) {
-            unset($elements[$delta]);
-          }
-        }
-        $elements['#file_upload_delta'] = 0;
-      } */
       $elements['#attached']['css']=array(
         drupal_get_path('module', 'historicalsurvey_fields') . '/css/historicalsurvey_fields_upload.css',
       ); 
@@ -483,49 +434,37 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
 }
 
 
-/*  Implements hook_element_info()
- *
+/*  
+ *  Implements hook_element_info()
  */
 function historicalsurvey_fields_element_info() {
   $types['historicalsurvey_location_widget_element'] = array(
     '#input' => TRUE,
     '#process' => array('historicalsurvey_location_widget_element_process'),
-    //'#element_validate' => array('historicalsurvey_location_element_validate'),
-    //'#theme' => 'historicalsurvey_location_widget_element_theme',
   );
   $types['historicalsurvey_designation_widget_element'] = array(
     '#input' => TRUE,
     '#process' => array('historicalsurvey_designation_widget_element_process'),
-    //'#theme' => 'historicalsurvey_construction_year_widget_element_theme',
   );
   $types['historicalsurvey_autocomplete_term_reference_widget_element'] = array(
     '#input' => TRUE,
     '#process' => array('historicalsurvey_autocomplete_term_reference_widget_element_process'),
-    //'#element_validate' => array('historicalsurvey_designation_widget_element_validate'),
-    //'#theme' => 'historicalsurvey_construction_year_widget_element_theme',
   );
   $types['historicalsurvey_construction_year_widget_element'] = array(
     '#input' => TRUE,
     '#process' => array('historicalsurvey_construction_year_widget_element_process'),
-    //'#element_validate' => array('historicalsurvey_construction_year_widget_element_validate'),
-    //'#theme' => 'historicalsurvey_construction_year_widget_element_theme',
   );
   $types['historicalsurvey_text_widget_element'] = array(
     '#input' => TRUE,
     '#process' => array('historicalsurvey_text_widget_element_process'),
-    //'#element_validate' => array('historicalsurvey_form_fields_element_validate'),
-    //'#theme' => 'historicalsurvey_text_widget_element_theme',
   );
-/*   $types['historicalsurvey_text_type_widget_element'] = array(
-    '#input' => TRUE,
-    '#process' => array('historicalsurvey_text_type_widget_element_process'),
-    //'#element_validate' => array('historicalsurvey_form_fields_element_validate'),
-    //'#theme' => 'historicalsurvey_text_widget_element_theme',
-  ); */
   return $types;
 }
 
-
+/*  
+ *  Process callback
+ *  For location widget
+ */
 function historicalsurvey_location_widget_element_process($element, &$form_state) {
 
   //create the form interface for choosing location via form and map
@@ -585,10 +524,12 @@ function historicalsurvey_location_widget_element_process($element, &$form_state
   return $element;
 }
 
-
+/*  
+ *  Process callback
+ *  For designation widget
+ */
 function historicalsurvey_designation_widget_element_process($element, &$form_state) {
 
-  //if(!empty($element['#default_value'])){dw($element['#default_value']);}
   $default_value=0;
   $match=FALSE;
   $element_options=array();
@@ -609,13 +550,10 @@ function historicalsurvey_designation_widget_element_process($element, &$form_st
   
   //create the form interface for choosing designation
   $delta=0;
-  /* $form_element = array(
-    '#type' => 'container',
-    '#tree' => FALSE,
-  ); */
   $element_options=array();
   foreach($element['#options'] as $group_name => $options_array) {
     $element_group = strtolower(str_replace(" ","-",$group_name));
+    
     //set default values
     $default_value=0;
     if(isset($element['#default_value']) && is_array($element['#default_value'])){      
@@ -646,9 +584,14 @@ function historicalsurvey_designation_widget_element_process($element, &$form_st
   return $element;
 }
 
+/*  
+ *  Process callback
+ *  For term reference widget
+ */
 function historicalsurvey_autocomplete_term_reference_widget_element_process($element, &$form_state) {
 
   $field_name=$element['#parents'][0];
+  
   //remove the drupal default add-more/multiple value interface
   $lang=$form_state['complete form'][$field_name]['#language'];
   unset($form_state['complete form'][$field_name][$lang]['#theme']); 
@@ -673,7 +616,10 @@ function historicalsurvey_autocomplete_term_reference_widget_element_process($el
   return $element;
 }
 
-
+/*  
+ *  Process callback
+ *  For construction year widget
+ */
 function historicalsurvey_construction_year_widget_element_process($element, &$form_state) {
 
   //decide on estimated/actual and single/range
@@ -689,6 +635,7 @@ function historicalsurvey_construction_year_widget_element_process($element, &$f
   else {
     $sing_rang = 0;
   }
+  
   //create the form interface for choosing construction year
   $element['est_act'] = array(
     '#type' => 'radios',
@@ -702,9 +649,7 @@ function historicalsurvey_construction_year_widget_element_process($element, &$f
     '#default_value' => $sing_rang,
     '#options' => array('Range of Years','Single Year'),
     '#weight'=>-11
-  );  
-      
-
+  );      
   $element['actual_early_year'] = array(
     '#type' => 'textfield',
     '#size' => 4,
@@ -721,8 +666,7 @@ function historicalsurvey_construction_year_widget_element_process($element, &$f
     '#prefix' => '<div class="construction-year-actual-range">to',
     '#suffix' => '</div></div>',
     '#weight'=>-9
-  );  
-  
+  );    
   $element['estimated_early_year'] = array(
     '#type' => 'textfield',
     '#size' => 4,
@@ -749,6 +693,10 @@ function historicalsurvey_construction_year_widget_element_process($element, &$f
   return $element;
 }
 
+/*  
+ *  Process callback
+ *  For text widget
+ */
 function historicalsurvey_text_widget_element_process($element, &$form_state) {
 
   //create the form interface for text
@@ -854,63 +802,3 @@ function historicalsurvey_text_widget_element_process($element, &$form_state) {
   );
   return $element;
 }
-
-/* function historicalsurvey_text_type_widget_element_process($element, &$form_state) {
-  
-  $field_name=$element['#parents'][0];
-  $lang=$form_state['complete form'][$field_name]['#language'];
-  //dw($form_state['complete form'][$field_name]);
-  //unset($form_state['complete form'][$field_name][$lang]['#theme']); 
-  //unset($form_state['complete form'][$field_name][$lang]['add_more']); 
-  //unset($form_state['complete form'][$field_name][$lang][0]['_weight']);
-  
-  $vocabulary = taxonomy_vocabulary_machine_name_load('category_physical_description');
-  $vid=$vocabulary->vid;
-  $top_level = taxonomy_get_tree($vid, $parent = 0, $max_depth = 1);
-  
-  foreach ($top_level as $id => $term) {
-    $options1[$term->tid] = $term->name;
-    $children = taxonomy_get_tree($vid, $term->tid);
-    foreach ($children as $child) {
-      $options2[$term->tid][$child->tid] = $child->name;
-    }
-  } 
-  
-  //create the form interface for text and sub-types if applicable
-  $element['#tree'] = TRUE;
-  
-  $element['type'] = array(
-    '#type' => 'textfield', 
-    '#default_value' => $element['#default_value']['type']?ucwords($element['#default_value']['type']) : NULL, 
-    '#rows' => 1,
-    '#attributes' => array('class' => array('text-full')),
-    '#weight' => -99,
-    '#resizable' => FALSE,
-    '#size' => 20,
-  );
-  $element['type1'] = array(
-    '#type' => 'select', 
-    '#default_value' => $element['#default_value']['type']?ucwords($element['#default_value']['type']) : NULL, 
-    '#attributes' => array('class' => array('text-full')),
-    '#options'=>$options1,
-    '#weight' => -99,
-  );
-  $element['value'] = array(
-    '#type' => 'textarea',
-    '#default_value' => $element['#default_value']['value']?$element['#default_value']['value'] : NULL, 
-    '#rows' => 3,
-    '#attributes' => array('class' => array('text-full')),
-    '#weight' => -98,
-    '#resizable' => FALSE,
-    '#size' => 20,
-  ); 
-  $element['notes'] = array(
-    '#type' => 'textarea',
-    '#default_value'=>isset($element['#default_value']['notes'])?$element['#default_value']['notes']:NULL,
-    '#weight' => 99,
-  );
-  
-  unset($element['replaced']);
-  
-  return $element;
-} */

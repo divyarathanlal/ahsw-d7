@@ -5,24 +5,7 @@
  *  Implements hook_theme().
  */
 function historicalsurvey_fields_theme($existing, $type, $theme, $path) {
-  return array(
-    'historicalsurvey_location_widget_element_theme' => array(
-      'variables' => array(
-      ),
-    ),
-    'historicalsurvey_construction_year_widget_element_theme' => array(
-      'variables' => array(
-      ),
-    ),
-    'historicalsurvey_text_widget_element_theme' => array(
-      'variables' => array(
-      ),
-    ),
-/*     'historicalsurvey_text_type_widget_element_theme' => array(
-      'variables' => array(
-      ),
-    ), */
-    
+  return array(   
     'historicalsurvey_multiple_value_form' => array(
       'render element' => 'element',
     ),
@@ -62,15 +45,6 @@ function historicalsurvey_fields_theme($existing, $type, $theme, $path) {
         'op' => '',
       ),
     ),
-/*     'historicalsurvey_text_type_formatter_element_theme' => array(
-      'variables' => array(
-        'items' => array(),
-        'field' => array(),
-        'entity' => array(),
-        'form_element_html' => array(),
-        'op' => '',
-      ),
-    ), */
     'historicalsurvey_term_reference_formatter_element_theme' => array(
       'variables' => array(
         'items' => array(),
@@ -112,7 +86,6 @@ function historicalsurvey_fields_theme($existing, $type, $theme, $path) {
   );
 }
 
-
 /**
  *  Implements hook_theme_registry_alter().
  */
@@ -122,7 +95,6 @@ function historicalsurvey_fields_theme_registry_alter(&$theme_registry) {
   $theme_registry['field_multiple_value_form']['theme path'] = drupal_get_path('module', 'historicalsurvey_fields');
   $theme_registry['field_multiple_value_form']['function'] = "theme_historicalsurvey_multiple_value_form";
 }
-
 
 /**
  * Rewrite of theme_field_multiple_value_form().
@@ -188,27 +160,12 @@ function theme_historicalsurvey_multiple_value_form($variables) {
   return $html;
 }
 
-/* function theme_historicalsurvey_location_widget_element_theme($variables) {
-  return 'TODO: FIX ME';
-}
-function theme_historicalsurvey_construction_year_widget_element_theme($variables) {
-  return 'TODO: FIX ME';
-}
-function theme_historicalsurvey_text_widget_element_theme($variables) {
-  return 'TODO: FIX ME';
-} */
-/* function theme_historicalsurvey_text_type_widget_element_theme($variables) {
-  return 'TODO: FIX ME';
-} */
-
-
 /**
  *  Theme function for custom username display
  */
 function theme_historicalsurvey_username($variables) {
   return $variables['account']->field_user_name[LANGUAGE_NONE][0]['value'];
 }
-
 
 /**
  *  Theme function for custom location element, forwards to general theme function.
@@ -231,13 +188,6 @@ function theme_historicalsurvey_text_formatter_element_theme($variables) {
   return historicalsurvey_fields_formatter_element_theme($variables, "historicalsurvey_text");
 }
 
-/**
- *  Theme function for custom text element, forwards to general theme function.
- */
-/* function theme_historicalsurvey_text_type_formatter_element_theme($variables) {
-  return historicalsurvey_fields_formatter_element_theme($variables, "historicalsurvey_text_type");
-}
- */
 /**
  *  Theme function for custom construction year element, forwards to general theme function.
  */
@@ -268,10 +218,6 @@ function theme_historicalsurvey_photo_formatter_element_theme($variables) {
   $hash = 'edit-' . str_replace("_", "-", $field['field_name']);
   $edit_link = ($op == 'view') ? ' href="' . $base_url . '/place/' . $node->nid . '/edit#' . $hash . '"' : '';
 
-  //show edit button on view page, and on upper review levels of edit page
-  /* if ($op == 'view') {
-    $html .= '<div class="edit-button"><a id=""' . $edit_link . '><img src="'.$base_url.'/'.drupal_get_path('module','historicalsurvey_place').'/img/pencil.png"></a></div>';
-  } */
   $html .= '<div class="field-photo-view">';
   if (!empty($items) && !empty($items[0]['fid'])) {
   
@@ -389,11 +335,6 @@ function theme_historicalsurvey_document_formatter_element_theme($variables) {
   $hash = 'edit-' . str_replace("_", "-", $field['field_name']);
   $edit_link = ($op == 'view') ? ' href="' . $base_url . '/place/' . $node->nid . '/edit#' . $hash . '"' : '';
 
-  //show edit button on view page, and on upper review levels of edit page
-  /* if ($op == 'view') {
-    $html .= '<div class="edit-button"><a id=""' . $edit_link . '><img src="'.$base_url.'/'.drupal_get_path('module','historicalsurvey_place').'/img/pencil.png"></a></div>';
-  } */
-  
   $html .= '<div class="field-document-view">';
   if (!empty($items)) {
   
@@ -438,14 +379,11 @@ function theme_historicalsurvey_document_formatter_element_theme($variables) {
  *  Theme function for custom notes element.
  */
 function theme_historicalsurvey_notes_formatter_element_theme($variables) {
-  //dw($variables);
-  //$form_element_html=!empty($variables['form_element_html'])?$variables['form_element_html']:FALSE; //only in edit mode
 
   $html = '<div>';
   $html .= '<div class="notes-title">SOURCES AND NOTES</div>';
   $html .= '<table><tbody>';
   if (!empty($variables['items'])) {
-    //dw($variables['items']);
     foreach ($variables['items'] as $field_name => $revisions) {
       $label = $revisions['label'];
       $form_element = isset($variables['form'][$field_name]) ? $variables['form'][$field_name] : FALSE;
@@ -494,7 +432,15 @@ function theme_historicalsurvey_notes_formatter_element_theme($variables) {
 function historicalsurvey_fields_formatter_element_theme($variables, $field_type) {
   global $base_url;
 
-  $items = isset($variables['items']['revisions']) ? $variables['items']['revisions'] : array();
+  $items = isset($variables['items']['unpublished']) ? $variables['items']['unpublished'] : (isset($variables['items']['revisions']) ? $variables['items']['revisions'] : array());
+  
+  //for the moderation queue field views
+  if(empty($items) && !empty($variables['items'])) {
+    $items[0] = $variables['items'];
+    $items[0]['#revision_uid'][] = $variables['entity']->revision_uid;
+    $items[0]['#revision_timestamp'] = $variables['entity']->revision_timestamp;
+  }
+
   $notes = isset($variables['items']['notes']) ? $variables['items']['notes'] : array();
   $node = $variables['entity'];
   $field = $variables['field'];
@@ -511,10 +457,11 @@ function historicalsurvey_fields_formatter_element_theme($variables, $field_type
   if ($count == 0 && ($op == 'view' || !strpos($field['field_name'], "_1"))
   && !in_array($field['field_name'], array('field_location','field_photo','field_document','field_designation_official','field_survey_effort','field_survey_effort_tag','field_tag'))) {
     $html .= '<div class="edit-button"><a href=' . $link . '><img src="'.$base_url.'/'.drupal_get_path('module','historicalsurvey_place').'/img/pencil.png"></a></div>';
-  }
-
+  } 
   if (!empty($variables['items'])) {
+
     $revision_count = count($items) -1;
+
     foreach ($items as $vid => $item) {
       if (is_numeric($vid)) {
         $html .= ($count == 0) ? '<div class="current-version">' : '<div class="revision">';
@@ -554,12 +501,9 @@ function historicalsurvey_fields_formatter_element_theme($variables, $field_type
                 break;
 
               case "historicalsurvey_text":
+
                 $html .= '<span class="value">' . check_markup($values['value']) . '</span>';
                 break;
-
-              /* case "historicalsurvey_text_type":
-                $html .= '<span class="sub-field-label">' . ucwords($values['type']) . '</span><span class="sub-values">' . $values['value'] . '</span>';
-                break; */
 
               case "historicalsurvey_construction_year":
                 if (isset($values['actual_early_year']) || isset($values['actual_late_year'])) {
@@ -571,6 +515,7 @@ function historicalsurvey_fields_formatter_element_theme($variables, $field_type
                 break;
 
               case "historicalsurvey_term_reference":
+
                 if(strpos($field['field_name'],'designation')) {
                   if (!empty($values['tid'])) {
                     $term = taxonomy_term_load($values['tid']);
@@ -591,6 +536,7 @@ function historicalsurvey_fields_formatter_element_theme($variables, $field_type
                     $html .= '<span class="term"><em>none</em></span>';
                   }
                 }
+
                 break;
 
               case "historicalsurvey_document":

@@ -42,6 +42,18 @@ body {
   color: #fff;
 }
 
+/*403 and 404*/
+#access-denied-wrapper,
+#not-found-wrapper{
+  text-align: center;
+  margin-top: 30px;
+  margin: 30px 0 30px;
+  background-color: #eee;
+  padding: 30px;
+  font-size: 1.5em;
+}
+
+
 /*
  * Header
  */
@@ -91,22 +103,30 @@ body {
 }
 
 
-/*register form*/
-.page-user-register{
+/*misc form pages*/
+.page-user-register,
+.page-contact{
   background-color:#eee;
 }
 
-#user-register-form {
+#user-register-form{
     background-color: white;
     margin: 0 120px;
     padding: 20px 30px;
 }
-#user-register-form label {
+#contact-site-form {
+    background-color: white;
+    margin: 0 140px;
+    padding: 20px 30px;
+}
+#user-register-form label,
+#contact-site-form label {
   display: inline-block;
   font-weight: bold;
   text-align: right;
   width: 150px;
 }
+#contact-site-form .form-textarea-wrapper,
 #user-register-form .form-textarea-wrapper {
   display: inline-block;
 }
@@ -114,11 +134,22 @@ body {
   margin:0;
 }
 
-#user-register-form .description, #user-register-form #edit-actions {
+#user-register-form .description {
   margin-left: 160px;
   width:430px;
 }
+#contact-site-form .description, #contact-site-form #edit-actions {
+  margin-left: 80px;
+  width:430px;
+}
 
+#contact-site-form .captcha {
+  width:440px;
+  margin: auto;
+}
+
+#user-pass #edit-submit,
+#contact-site-form #edit-submit,
 #user-register-form #edit-submit {
   background-color:darkblue;
   color:white;
@@ -134,13 +165,28 @@ body {
 
 
 /*General Misc Pages*/
-.page-privacy-policy, .page-user-password{
+.node-type-book, 
+.page-privacy-policy, 
+.page-user-password{
   background-color:#eee;
 }
-#privacy-policy-container, #user-pass{
+
+.node-type-book #content, 
+#privacy-policy-container,
+#user-pass{
     background-color: white;
     margin: 0 120px;
     padding: 20px 30px;
+}
+
+
+.node-type-book #content a{
+  color:darkblue;
+  font-weight:bold;
+  text-decoration:none;
+}
+.node-type-book #content a:hover{
+  text-decoration:underline;
 }
 
 
@@ -319,4 +365,10 @@ span.field-label { /* The inline field label used by the Fences module */
  */
 
 .region-bottom { /* Wrapper for any blocks placed in the page bottom region */
+}
+
+
+
+.page-user-edit #edit-contact{
+  display:none;
 }

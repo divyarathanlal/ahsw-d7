@@ -36,6 +36,11 @@ function historicalsurvey_search_menu() {
     'access arguments' => array('access historicalsurvey_search'),
     'type' => MENU_SUGGESTED_ITEM,
   );
+  $items['search/quick'] = array(
+    'page callback' => 'historicalsurvey_search_quick',
+    'access arguments' => array('access historicalsurvey_search'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
   return $items;
 }
 
@@ -58,7 +63,7 @@ function historicalsurvey_search_permission() {
  * Displays a search page.
  */
 function historicalsurvey_search_view() {
-  //$keys=isset($_SESSION['historicalsurvey_search']['keys'])?$_SESSION['historicalsurvey_search']['keys']:FALSE;
+  
   $keys = NULL;
   if (isset($_SESSION['historicalsurvey_search'])) {
     drupal_goto('search/cancel');
@@ -98,7 +103,6 @@ function historicalsurvey_search_search_form(array $form, array &$form_state, $k
   );
 
   $field_instances = field_info_instances('node', 'place');
-  //debug_write($field_instances);
 
   $form['keys']['field_location'] = array(
     '#tree' => TRUE,
@@ -306,7 +310,7 @@ function historicalsurvey_search_search_form(array $form, array &$form_state, $k
     '#type' => 'submit',
     '#value' => t('Search'),
   );
-  //debug_write($form);
+  
   return $form;
 }
 
@@ -341,7 +345,6 @@ function historicalsurvey_search_address_search_form(array $form, array &$form_s
     '#value' => t('Search'),
   );
   
-  //dw($form);
   return $form;
 }
 
@@ -349,8 +352,6 @@ function historicalsurvey_search_address_search_form(array $form, array &$form_s
  * Validation callback for historicalsurvey_search_search_form().
  */
 function historicalsurvey_search_search_form_validate(array $form, array &$form_state) {
-
-  //dw($form_state['values']['keys']);
 
   //get rid of the empties
   $keys = array();
@@ -466,7 +467,7 @@ function historicalsurvey_search_address_search_form_validate(array $form, array
     drupal_goto('places'); //to reset the default-value help text
   }
   else {
-    $_SESSION['historicalsurvey_search']['options'] = $form_state['values']['keys']['options'];
+    $_SESSION['historicalsurvey_search']['options'] = isset($form_state['values']['keys']['options'])?$form_state['values']['keys']['options']:array();
     $_SESSION['historicalsurvey_search']['keys'] = $keys;
   }
 }
@@ -492,8 +493,7 @@ function historicalsurvey_search_results_view() {
 
   //get keys from session if theyve been set already
   $keys = isset($_SESSION['historicalsurvey_search']['keys']) ? $_SESSION['historicalsurvey_search']['keys'] : FALSE;
-  $options = isset($_SESSION['historicalsurvey_search']['options']) ? $_SESSION['historicalsurvey_search']['options'] : FALSE;
-  //unset($_SESSION['historicalsurvey_search']['keys']);  
+  $options = isset($_SESSION['historicalsurvey_search']['options']) ? $_SESSION['historicalsurvey_search']['options'] : FALSE;  
   
   //paginate
   $pager['num_per_page'] = 10;
@@ -581,5 +581,38 @@ function historicalsurvey_search_search_api_alter_callback_info() {
   return $callbacks;
 }
 
+
+
+function historicalsurvey_search_quick($search_subject){
+  if($search_subject=='landmarks') {
+    $_SESSION['historicalsurvey_search'] = array(  
+      'options' => array(
+        'set_type' => "union",
+      ),
+      'keys' => array(
+        'field_designation_official' => array(
+          'select' => "1518",
+        ),
+      ),
+    );
+    drupal_goto('search/results');
+  }
+  elseif($search_subject=='demolished') {
+    $_SESSION['historicalsurvey_search'] = array(  
+      'options' => array(
+        'set_type' => "union",
+      ),
+      'keys' => array(
+        'field_status' => array(
+          'select' => "1513",
+        ),
+      ),
+    );
+    drupal_goto('search/results');  
+  }
+  else{
+    drupal_goto('places');
+  }
+}
 
 

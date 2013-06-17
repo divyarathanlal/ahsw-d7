@@ -45,12 +45,12 @@ function historicalsurvey_place_add_place_form_validate($form, &$form_state) {
   if (!empty($form_state['values']['field_location']['location'])) {
     $address = $form_state['values']['field_location']['location'];
     $geo_data = geocoder('coa', $address);
-    //dw($geo_data);
     $form_state['values']['field_location']['geo_data'] = $geo_data;
 
     //historicalsurvey_place_address_duplicate_validate($geo_data);
 
     if (isset($geo_data['data']['Jurisdiction'])) {
+    
       //get variable list of acceptable jurisdictions, set by admin config
       //foreach of those acceptable jurisdictions, match them against the geo_data Jurisdiction       
       $jurs = variable_get('historicalsurvey_place_jurisdictions', array(210));
@@ -116,9 +116,9 @@ function historicalsurvey_place_add_place_address_form() {
     $user_address = $results['location'];
     if (isset($geo_data['error'])) {
       drupal_set_message($geo_data['error'], 'warning');
-      //watchdog('Geocoding Error', 'Geocoder says: '.$geo_data['error']);
+      watchdog('Geocoding Error', 'Geocoder says: '.$geo_data['error']);
     }
-    //dw($geo_data);
+    
     $options['Match_addr'] = $geo_data['data']['Match_addr'] . " <span class='map-point-found'><small>(" . $geo_data['coords'][1] . ", " . $geo_data['coords'][0] . ")</small></span>";
     if (!empty($geo_data['data']['alternatives']) && count($geo_data['data']['alternatives'])) {
       foreach ($geo_data['data']['alternatives'] as $key => $result) {
@@ -145,6 +145,7 @@ function historicalsurvey_place_add_place_address_form() {
     );
   }
   else {
+  
     //user reached the page improperly, so just reset
     drupal_goto('place/new/cancel');
   }
@@ -153,7 +154,6 @@ function historicalsurvey_place_add_place_address_form() {
 
 /**
  *  Validate Function for Add New Place, step 2
- *
  */
 function historicalsurvey_place_add_place_address_form_validate($form, &$form_state) {
   if ($form_state['values']['op'] == 'Cancel') {
@@ -169,6 +169,7 @@ function historicalsurvey_place_add_place_address_form_validate($form, &$form_st
  *  Set the selected option, and continue to step 3 *
  */
 function historicalsurvey_place_add_place_address_form_submit($form, &$form_state) {
+
   //set the selection data
   unset($_SESSION['historicalsurvey_place_add_place']['selection']);
   if ($form_state['values']['alts'] == 'Match_addr') {
@@ -181,7 +182,6 @@ function historicalsurvey_place_add_place_address_form_submit($form, &$form_stat
     $key = $form_state['values']['alts'];
     $_SESSION['historicalsurvey_place_add_place']['selection']['geo_data'] = $_SESSION['historicalsurvey_place_add_place']['results']['geo_data']['data']['alternatives'][$key];
   }
-  //unset($_SESSION['historicalsurvey_place_add_place']['results']);
   $_SESSION['historicalsurvey_place_add_place']['step2'] = TRUE;
 
   drupal_goto('place/new/map');
@@ -275,6 +275,7 @@ function historicalsurvey_place_add_place_map_form_validate($form, &$form_state)
     form_set_error('map', 'Please select a point on the map');
   }
   else {
+  
     //reverse geocode the point, just to make sure we are still within an acceptable location
     $lat_lng = $form_state['values']['selectedLat'] . ',' . $form_state['values']['selectedLng'];
 
@@ -288,6 +289,7 @@ function historicalsurvey_place_add_place_map_form_validate($form, &$form_state)
  */
 function historicalsurvey_place_add_place_map_form_submit($form, &$form_state) {
   if ($form_state['values']['op'] == 'Continue') {
+  
     //create the record, goto edit form
     $selected_point = array(
       'lat' => $form_state['values']['selectedLat'],
@@ -340,7 +342,6 @@ function historicalsurvey_place_add_place_cancel() {
  *  Returns the new node ID if sucessful
  */
 function historicalsurvey_place_create_place($selected_point, $user_address = '', $geo_data = array(),$publish_it=FALSE) {
-  //dw($geo_data);
   $node = new stdClass();
   $node->type = 'place';
   $node->status = 1;

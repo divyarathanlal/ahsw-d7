@@ -3,14 +3,16 @@
   $(document).ready(function (){
     initialize();  
   });
-  
+    
   var map,allowedBounds;
   
+    
   function initialize() {
     
     var redpin, ghostpin, x, infobox;
     var zoomControl=true;
     var scrollwheel=true;
+    
     
     if(Drupal.settings.viewmode=='mini'){
       zoomControl=false;

@@ -19,7 +19,7 @@ function historicalsurvey_theme_preprocess_page(&$variables) {
   }                                                                            
   else {              
     $output .= '<span class="user-info">'.theme('historicalsurvey_username', array('account' => $user_info)).'</span>';
-    $output .= '<span class="user-dashboard">'.l('My Dashboard', 'dashboard').'</span>';
+    //$output .= '<span class="user-dashboard">'.l('My Dashboard', 'dashboard').'</span>';
     $output .= '<span class="user-logout">'.l('Logout', 'user/logout').'</span>';
     $variables['user_bar'] = '<div id="loggedin-bar" class="user-bar">'.$output.'</div>';
   }

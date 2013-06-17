@@ -2,6 +2,7 @@
 
 /**
  * Install file for HistoricalSurvey Place module
+ * Creates 'Place' entity type with custom fields
  */
 
 /**
@@ -72,8 +73,6 @@ function historicalsurvey_place_install() {
         'description' => 'Physical Description',
         'reference' => 'References',
       ),
-     /*  'historicalsurvey_text_type' => array(
-      ), */
     ),
   );
   variable_set('historicalsurvey_place_custom_fields', $custom_fields);
@@ -168,6 +167,7 @@ function historicalsurvey_place_uninstall() {
 
 
 /**
+ * Helper Function
  * Returns a structured array defining the fields created by this content type.
  */
 function historicalsurvey_place_installed_fields() {
@@ -241,12 +241,6 @@ function historicalsurvey_place_installed_fields() {
             ),
           );
             break;
-          /* case "historicalsurvey_text_type":
-            $array['field_' . $machine_name . $suffix]['settings'] = array(
-              'rows' => 5,
-              'max_length' => 512,
-            );
-            break; */
           case "historicalsurvey_text":
             $array['field_' . $machine_name . $suffix]['settings'] = array(
               'rows' => 5,
@@ -264,6 +258,7 @@ function historicalsurvey_place_installed_fields() {
 
 
 /**
+ * Helper Function
  * Returns a structured array defining the instances for this content type.
  */
 function historicalsurvey_place_installed_instances() {
@@ -290,20 +285,9 @@ function historicalsurvey_place_installed_instances() {
             ),
           ),
           'review_level' => NULL,
-          //'default_value_function' => $field_type.'_get_default_value', 
         ),
       );
       switch ($field_type) {
-        /* case 'historicalsurvey_text_type':
-          $array['field_' . $machine_name]['settings'] = array(
-            'text_processing' => FALSE,
-            'max_length' => 16,
-          );
-          $array['field_' . $machine_name]['widget']['settings'] = array(
-            'size' => 16,
-            'rows' => 1,
-          );
-          break; */
         case 'historicalsurvey_text':
           $array['field_' . $machine_name]['settings'] = array(
             'text_processing' => FALSE,
@@ -360,20 +344,9 @@ function historicalsurvey_place_installed_instances() {
             'review_level' => array(
               $key => $level,
             ),
-            //'default_value_function' => $field_type.'_get_default_value', 
           ),
         );
         switch ($field_type) {
-          /* case 'historicalsurvey_text_type':
-            $array['field_' . $machine_name . $machine_suffix]['settings'] = array(
-              'text_processing' => FALSE,
-              'max_length' => 512,
-            );
-            $array['field_' . $machine_name . $machine_suffix]['widget']['settings'] = array(
-              'size' => 64,
-              'rows' => 5,
-            );
-            break; */
           case 'historicalsurvey_text':
             $array['field_' . $machine_name . $machine_suffix]['settings'] = array(
               'text_processing' => FALSE,

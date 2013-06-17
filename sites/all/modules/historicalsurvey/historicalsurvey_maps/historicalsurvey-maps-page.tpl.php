@@ -8,6 +8,10 @@
         $form=drupal_get_form('historicalsurvey_search_address_search_form');
         print drupal_render($form); 
       ?>
+      <div id="quick-searches-wrapper">
+        <div><?php print l("City of Austin Landmarks","search/quick/landmarks"); ?></div>|
+        <div><?php print l("Demolished Places","search/quick/demolished"); ?></div>
+      </div>
     </div>
     <div class="field-wrapper" id="map-wrapper">     
       <?php print render($map); ?>
@@ -21,6 +25,6 @@
     </div>
     <div><a href="places">Find Places</a> to see what has been added to the Wiki.</div>
     <div><a href="user/create">Create a login</a> to add or edit place records.</div>
-    <?php //<div><a href="guide">Learn more</a> about the project on the Wiki User Guide.</div> ?>
+    <div><a href="guide">Learn more</a> about the project on the Wiki User Guide.</div>
     <div> Wiki Stats: </div>
 </div>

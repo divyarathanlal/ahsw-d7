@@ -22,6 +22,16 @@
   font-size: .8em;
 }
 
+.page-dashboard .revision-info .label{
+  width:auto;
+  margin: 0 10px 0 0px;
+}
+
+.page-dashboard #historicalsurvey-workflow-form th,
+.page-dashboard #historicalsurvey-workflow-form td{
+  padding: 1px 10px;
+}
+
 .notes .notes-item{  
   margin: 0px 65px;
 }
@@ -120,7 +130,11 @@ td[row="designation_potential"] .main-value {
 .revision-info{
   margin-top:10px;
   padding-bottom:5px;
-  display:none;
+  display:none
+
+}
+.page-dashboard .revision-info{
+  display:block;
 }
 
 .revision-info .time .value{
@@ -367,8 +381,14 @@ td[row="designation_potential"] .main-value {
 } */
 
 .edit-mode #edit-add-files-link a{
-  text-decoration:none;
-  
+  text-decoration: none;
+  color: darkblue;
+  padding: 10px;
+  line-height: 1.5em;
+  display: block;
+  width: 120px;
+  font-weight: bold;
+  border: 1px solid #eee;
 }
 
 /*buttons*/
@@ -538,4 +558,20 @@ display: inline-block;
 }
 .edit-mode .designation-group-title span {
   font-weight:normal
+}
+
+
+/*Guide*/
+#guide-wrapper #guide-inner-wrapper{
+  padding:10px;
+  font-size:.9em;
+}
+#guide-wrapper p{
+  margin:0 0 10px 0px;
+}
+#guide-wrapper p.title{
+  color:#aaa;
+}
+#guide-wrapper p.more-link{
+  margin:30px 0 0 0;
 }

@@ -72,10 +72,16 @@
  * @ingroup themeable
  */
   global $base_url;
-  //$user_login_block = drupal_get_form('user_login_block');
+  $addaplace_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-addaplace.png"));
+  $menu_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-map.png"));
+  $places_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-findplaces.png"));
+  $surveys_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-surveys.png"));
+  $guide_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-guide.png"));
+  $contact_img = theme('image',array('path'=> drupal_get_path('theme','historicalsurvey_theme') . "/img/hs-menu-contact.png"));
   
 ?>
 <script src="http://www.cityofaustin.org/brandbar/coa.brandbar.js" type="text/javascript"></script>
+
 <div id="page" class="container-12">
   <header id="header" role="banner"> 
   
@@ -84,34 +90,24 @@
     <div id="logo">
       <a href=<?php echo $base_url; ?>><img src="<?php echo $base_url; ?>/sites/all/themes/historicalsurvey_theme/img/ahsw-logo-horz.png"></a>
     </div>
-    <div id="main-menu">
     
-            
-      <?php if(user_access('create place content')): ?>
-        <?php $img = theme('image',array('path'=>drupal_get_path('theme','historicalsurvey_theme').'/img/hs-menu-addaplace.png')); ?>    
-        <span class="menu-item" id="menu-item-map"><?php print l($img,'place/new',array('html'=>TRUE)); ?></span>
-      <?php endif; ?>
-      
-      <span class="menu-item" id="menu-item-map"><a href="<?php echo $base_url; ?>"><img alt="Map" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-map.png"></a></span>
-      
-      <span class="menu-item" id="menu-item-places"><a href="<?php echo $base_url; ?>/places"><img alt="Find Places" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-findplaces.png"></a></span>
-      
-      <?php /*<span class="menu-item" id="menu-item-surveys"><a href="<?php echo $base_url; ?>/surveys"><img alt="Survey" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-surveys.png"></a></span>*/?>
-      
-      <?php /*<span class="menu-item" id="menu-item-guide"><a href="<?php echo $base_url; ?>/guide"><img alt="Guide" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-guide.png"></a></span>*/ ?>
-      
-      <?php /*<span class="menu-item" id="menu-item-forum"><a href="<?php echo $base_url; ?>/forum"><img alt="Forum" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-forum.png"></a></span>*/?>
-      
-      <span class="menu-item" id="menu-item-contact"><a href="<?php echo $base_url; ?>/contact"><img alt="Contact" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-contact.png"></a></span>
-      
-      <?php /*<span class="menu-item" id="menu-item-contact"><a href="<?php echo $base_url; ?>/about"><img alt="About" src="<?php echo $base_url .'/' . drupal_get_path('theme','historicalsurvey_theme'); ?>/img/hs-menu-about.png"></a></span>*/?>
+    <div id="main-menu"> 
+      <?php if(user_access('create place content')): ?>        
+        <span class="menu-item" id="menu-item-addaplace"><?php print l($addaplace_img,'place/new',array('html'=>TRUE)); ?></span>
+      <?php endif; ?>      
+      <span class="menu-item" id="menu-item-map"><?php print l($menu_img,'',array('html'=>TRUE)); ?></span>
+      <span class="menu-item" id="menu-item-places"><?php print l($places_img,'places',array('html'=>TRUE)); ?></span>
+      <?php /*<span class="menu-item" id="menu-item-surveys"><?php print l($surveys_img,'surveys',array('html'=>TRUE)); ?></span>*/ ?>
+      <span class="menu-item" id="menu-item-guide"><?php print l($guide_img,'guide',array('html'=>TRUE)); ?></span>      
+      <span class="menu-item" id="menu-item-contact"><?php print l($contact_img,'contact',array('html'=>TRUE)); ?></span>      
     </div>
+    
   </header>  
+  
   <div id="main">  
     <div id="content" class="column" role="main">
       <a id="main-content"></a>      
-      <?php if($user->uid===1){print $messages;} ?>
-      <?php //print $messages; ?>
+      <?php print $messages; ?>
       <?php print render($page['content']); ?>      
     </div><!-- /#content -->
   </div><!-- /#main -->  

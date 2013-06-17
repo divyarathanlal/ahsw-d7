@@ -156,3 +156,21 @@ body { height: 100%; margin: 0; padding: 0 }
 #address-wrapper .help-text a:hover{
   text-decoration:underline;
 }
+
+/*Quick searches*/
+
+#quick-searches-wrapper {
+}
+
+#quick-searches-wrapper div{
+  margin:10px 10px 0 0;
+  display:inline-block;
+}
+
+#quick-searches-wrapper div a{
+  font-weight:bold;
+  color:darkblue;
+  text-decoration:none;
+}
+
+

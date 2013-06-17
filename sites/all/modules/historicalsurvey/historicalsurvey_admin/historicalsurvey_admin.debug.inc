@@ -1,31 +1,23 @@
 <?php
 
-
 /*
- *  hook_init()
+ *  Implements hook_init()
  *  Runs on every non-cached page
  */
-
 function historicalsurvey_admin_init(){
-  //dw('');
-  
-  
-   //$schema=image_field_widget_form(); 
-   //dw(node_load(3));
    
 }
 
+/*
+ *  Implements hook_node_view()
+ */
 function historicalsurvey_admin_node_view($node, $view_mode, $langcode){
-  //dw('');
-  
-  
-   //$schema=image_field_widget_form(); 
-   //dw($node);
-   
+
 }
 
-
-
+/*
+ *  Main debugging output function, writes to debug_log.html
+ */
 function dw($variable,$name="<span style='color:#666'><em>variable</em></span>",$add=FALSE){
    ob_start();
     //var_dump($variable);
@@ -53,25 +45,15 @@ function dw($variable,$name="<span style='color:#666'><em>variable</em></span>",
   file_put_contents($file, $data);
 }
 
+/*
+ *  Legacy debugging output function
+ */
 function debug_write($variable,$name="<span style='color:#666'><em>variable</em></span>",$add=FALSE){
   return dw($variable,$name,$add);
 }
 
 /**
- * Better GI than print_r or var_dump -- but, unlike var_dump, you can only dump one variable.  
- * Added htmlentities on the var content before echo, so you see what is really there, and not the mark-up.
- * 
- * Also, now the output is encased within a div block that sets the background color, font style, and left-justifies it
- * so it is not at the mercy of ambient styles.
- *
- * Inspired from:     PHP.net Contributions
- * Stolen from:       [highstrike at gmail dot com]
- * Modified by:       stlawson *AT* JoyfulEarthTech *DOT* com 
- *
- * @param mixed $var  -- variable to dump
- * @param string $var_name  -- name of variable (optional) -- displayed in printout making it easier to sort out what variable is what in a complex output
- * @param string $indent -- used by internal recursive call (no known external value)
- * @param unknown_type $reference -- used by internal recursive call (no known external value)
+ * Better GI than print_r or var_dump... from php.org
  */
 function _do_dump(&$var, $var_name = "", $indent = NULL, $reference = NULL){
   $do_dump_indent = "<span style='color:#666666;'>.</span>&nbsp;";

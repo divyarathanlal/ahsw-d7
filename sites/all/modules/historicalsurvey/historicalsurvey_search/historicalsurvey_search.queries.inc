@@ -74,9 +74,7 @@ function historicalsurvey_search_get_query_results($keys_raw, $options, $pager) 
     }
   }
   if (isset($keys['term'])) {
-    //$ret['results']['#keys']['term'] = $keys['term'];
     foreach ($keys['term'] as $field => $key) {
-      //foreach($key_array as $key){
       if (!empty($key)) {
         $field_options = isset($keys['options'][$field]) ? $keys['options'][$field] : array();
         $results = historicalsurvey_search_term_search_execute($key, $field, $field_options);
@@ -95,12 +93,10 @@ function historicalsurvey_search_get_query_results($keys_raw, $options, $pager) 
           }
           $result_count = count($ret['results']['#results']['results']);
         }
-      }
-      //}     
+      }  
     }
   }
   if (!empty($keys['year'])) {
-    //$ret['results']['#keys']['year'] = $keys['year'];
     $results = historicalsurvey_search_year_search_execute($keys['year']['field_construction_year']['year_early'], $keys['year']['field_construction_year']['year_late']);
     if ($results['results']) {
       foreach ($results['results'] as $nid => $field_array) {
@@ -113,9 +109,7 @@ function historicalsurvey_search_get_query_results($keys_raw, $options, $pager) 
     }
   }
   if (!empty($keys['location']['field_location'])) {
-    //$ret['results']['#keys']['location']['field_location'] = $keys['location']['field_location'];
     $results = historicalsurvey_search_location_search_execute($keys['location']['field_location']);
-    //dw($results);
     if ($results['results']) {
       foreach ($results['results'] as $nid => $field_array) {
         $top=$field_array['top'];
@@ -153,12 +147,10 @@ function historicalsurvey_search_get_query_results($keys_raw, $options, $pager) 
     }
   }
   
-  //highlighting
-
   $ret['results']['#results']['result count'] = $result_count;
 
   //results are aleady in union form, for intersect we must unset
-  $set_type = $options['set_type']; //`intersect` or `union`
+  $set_type = isset($options['set_type'])?$options['set_type']:'union'; //`intersect` or `union`
   if ($set_type == 'intersect') {
     $nids_to_unset = array();    
     foreach ($nids as $field_name => $set) {
@@ -242,11 +234,11 @@ function historicalsurvey_search_text_search_execute($search_key, $orig_field, $
   $query = search_api_query('solr_tomcat6', $options)
     ->keys($search_key)
     ->fields($fields);
-    /* ->condition($field,$key);*/ //meaning, WHERE $field=$key
     
   $r = $query->execute();
 
   if ($r['result count'] > 0) {
+  
     //save just the fields we want
     $result = $r['results'];
     foreach ($result as $nid => $values) {
@@ -324,7 +316,6 @@ function historicalsurvey_search_term_search_execute($search_key, $orig_field, $
     }
   }
   if (!empty($results)) {
-    //debug_write($results,'x',true);
     return $results;
   }
   return FALSE;
@@ -347,7 +338,6 @@ function historicalsurvey_search_year_search_execute($early, $late) {
 
   $orig_field = 'field_construction_year';
   $review_levels = variable_get('historicalsurvey_place_review_levels', array());
-  //dw('');
   foreach ($review_levels as $level) {
     $suffix = $level['machine_suffix'];
     $field = $orig_field . $suffix;
@@ -362,7 +352,6 @@ function historicalsurvey_search_year_search_execute($early, $late) {
     
     if(isset($query->ordered_results)) {
       $result =$query->ordered_results;
-      //dw($result,'',1);
       if (!empty($result)) {
         foreach ($result as $place_stub) {
           $nid=$place_stub->entity_id;
@@ -377,7 +366,6 @@ function historicalsurvey_search_year_search_execute($early, $late) {
     }
   }
   if (!empty($results)) {
-    //$results['results']=array_slice($results['results'], 0, 5, 1);
     return $results;
   }
   return FALSE;
@@ -566,9 +554,7 @@ function historicalsurvey_search_query_addr_parts_alter(QueryAlterableInterface 
 
 /**
  * Implements hook_query_TAG_alter
- *
  * So that we can add OR statments for search on the match_addr and location fields
- *
  * @param QueryAlterableInterface $query
  */
 function historicalsurvey_search_query_addr_full_alter(QueryAlterableInterface $query) {
@@ -587,14 +573,12 @@ function historicalsurvey_search_query_addr_full_alter(QueryAlterableInterface $
 
 /**
  * Implements hook_query_TAG_alter
- *
  * So that we can add OR statments for search on the various geocoder match_addr
- *
  * @param QueryAlterableInterface $query
  */
 function historicalsurvey_search_query_geoaddr_alter(QueryAlterableInterface $query) {
   $addr_array = $query->alterMetaData['addr'];
-  //maybe there is a better way to do this, perhaps with db_or(), dunno...
+  
   $query->fields('l',array('field_location_location'));
   $query  
     ->leftJoin('field_revision_field_location', 'l', 'node.nid = l.entity_id');
@@ -623,6 +607,7 @@ function historicalsurvey_search_normalize_location($location) {
     'road' => 'rd',
     'avenue' => 'ave',
     'court' => 'ct'
+    //more....
   );
 
   foreach($list as $from=>$to) {
