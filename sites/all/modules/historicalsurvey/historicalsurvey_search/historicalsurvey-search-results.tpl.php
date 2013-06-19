@@ -24,9 +24,9 @@
     <?php print render($results_themed); ?>    
     
     <div id="search-results-bottom">
-      <div id="search-results-batch-edit"><?php print(l(t("Batch Edit these Results"), 'search/edit/select')); ?></div>
-      <div id="search-results-batch-review"><?php print(l(t("Batch Review These Results"), 'search/review/select')); ?></div>
-      <div>Download as CSV</div>
+      <div id="search-results-batch-edit"><?php //print(l(t("Batch Edit these Results"), 'search/edit/select')); ?></div>
+      <div id="search-results-batch-review"><?php //print(l(t("Batch Review These Results"), 'search/review/select')); ?></div>
+      <!--<div>Download as CSV</div>-->
     </div>
   </div>
   

@@ -26,5 +26,5 @@
     <div><a href="places">Find Places</a> to see what has been added to the Wiki.</div>
     <div><a href="user/create">Create a login</a> to add or edit place records.</div>
     <div><a href="guide">Learn more</a> about the project on the Wiki User Guide.</div>
-    <div> Wiki Stats: </div>
+    <div id="stats-outer-wrapper"><?php print render($stats); ?></div>
 </div>

@@ -165,11 +165,12 @@ function historicalsurvey_search_get_query_results($keys_raw, $options, $pager) 
     $ret['results']['#results']['result count'] = count($ret['results']['#results']['results']);
   }
   
-  $ret['results']['#results']['all_nids'] = array_keys($ret['results']['#results']['results']);
-  
-  //paginate
-  $ret['results']['#results']['results'] = array_slice($ret['results']['#results']['results'],$pager['offset'], $pager['num_per_page'],TRUE);
-  
+  if(isset($ret['results']['#results']['results'])) {
+    $ret['results']['#results']['all_nids'] = array_keys($ret['results']['#results']['results']);
+    
+    //paginate
+    $ret['results']['#results']['results'] = array_slice($ret['results']['#results']['results'],$pager['offset'], $pager['num_per_page'],TRUE);
+  }
   return $ret['results'];
 }
 
@@ -230,6 +231,15 @@ function historicalsurvey_search_text_search_execute($search_key, $orig_field, $
       $fields[] = $field . $suffix;
     }
   }
+  
+  //translate the taxonomy term ids
+  if(in_array($orig_field,array('field_use','field_style')) && is_numeric($search_key)) {
+    $term = taxonomy_term_load($search_key);
+    if(!empty($term)) {
+      $search_key = $term->name;
+    }
+  }
+
   // Send to Search API/Solr
   $query = search_api_query('solr_tomcat6', $options)
     ->keys($search_key)
@@ -275,7 +285,14 @@ function historicalsurvey_search_text_search_execute($search_key, $orig_field, $
 function historicalsurvey_search_term_search_execute($search_key, $orig_field, $field_options = array()) {
   
   $term=taxonomy_term_load($search_key);
-  $term_name=$term->name;
+  $parents = taxonomy_get_parents($term->tid);
+  if(!empty($parents)) {
+    $parent = reset($parents);
+    $term_name=$parent->name.' - '.$term->name;
+  }
+  else{  
+    $term_name=$term->name;
+  }
 
   if (!empty($field_options)) {
     foreach ($field_options as $suffix => $value) {
@@ -287,8 +304,14 @@ function historicalsurvey_search_term_search_execute($search_key, $orig_field, $
   else {
     $fields_raw[] = $orig_field;
   }
+  
+  //fix
+  if($orig_field=='field_survey_effort'){
+    $orig_field='field_survey_effort_tag';
+  }  
+  
   $review_levels = array(0);
-  if (!in_array($orig_field, array('field_designation_official','field_survey_effort','field_tag'))) {
+  if (!in_array($orig_field, array('field_designation_official','field_survey_effort_tag','field_tag'))) {
     $review_levels = variable_get('historicalsurvey_place_review_levels', array());
     foreach ($fields_raw as $key => $field) {
       foreach ($review_levels as $level) {
@@ -300,18 +323,18 @@ function historicalsurvey_search_term_search_execute($search_key, $orig_field, $
   else {
     $fields = array($orig_field);
   }
-  foreach ($fields as $field) {
-    $query = new EntityFieldQuery();
-    $query->entityCondition('entity_type', 'node')
-      ->entityCondition('bundle', 'place')
-      ->propertyCondition('status', 1)
-      ->fieldCondition($field, 'tid', $search_key)
-      ->age(FIELD_LOAD_REVISION);
-    $result = $query->execute();
 
+  foreach ($fields as $field) {
+    //TODO: rewrite this with EntityFieldQuery, if possible
+    $query = 'SELECT entity_id, MAX(revision_id) revision_id, '.$field.'_tid FROM field_revision_'.$field.' GROUP BY entity_id HAVING '.$field.'_tid = :key';
+    $result = db_query($query, 
+      array(
+        ':key' => $search_key,
+      )
+    );
     if (!empty($result)) {
-      foreach ($result['node'] as $place_stub) {
-        $results['results'][$place_stub->nid][$field]['values']['term'] = $term_name;
+      foreach ($result as $place_stub) {
+        $results['results'][$place_stub->entity_id][$field]['values']['term'] = $term_name;
       }
     }
   }
@@ -320,7 +343,6 @@ function historicalsurvey_search_term_search_execute($search_key, $orig_field, $
   }
   return FALSE;
 }
-
 
 /**
  * Executes a search in a single construction year field.

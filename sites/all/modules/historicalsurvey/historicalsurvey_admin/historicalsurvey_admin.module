@@ -1,3 +1,4 @@
 <?php
 
 include_once('historicalsurvey_admin.debug.inc');
+include_once('historicalsurvey_admin.stats.inc');

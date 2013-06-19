@@ -65,7 +65,23 @@ function historicalsurvey_maps_theme($existing, $type, $theme, $path) {
 
 
 function historicalsurvey_maps_preprocess_historicalsurvey_maps_page(&$variables) {
-
+  $variables['stats'] = array(
+    '#type' => 'markup',
+    '#markup' => historicalsurvey_maps_get_stats(),
+  );
+}
+function historicalsurvey_maps_get_stats() {
+  
+  // places, images, documents, users, survey efforts
+  $place_count = db_query('SELECT COUNT(nid) FROM node WHERE node.type=\'place\'')->fetchField();
+  $image_count = db_query('SELECT COUNT(f.fid) FROM `field_data_field_photo` p, `file_managed` f WHERE p.field_photo_fid=f.fid')->fetchField();
+  $document_count = db_query('SELECT COUNT(f.fid) FROM `field_data_field_document` p, `file_managed` f WHERE p.field_document_fid=f.fid')->fetchField();
+  $user_count = db_query('SELECT COUNT(uid) FROM `users`')->fetchField();
+  $survey_effort_count = db_query('SELECT COUNT(t.tid) FROM `taxonomy_term_data` t,`taxonomy_vocabulary` v WHERE `machine_name` = \'value_survey_effort\' AND v.vid=t.vid')->fetchField();
+  
+  
+  return '<div id="stats-inner-wrapper"><p><strong>Wiki Stats: </strong></p><p><span>Places: </span><strong>'.$place_count.'</strong></p><p><span>Images: </span><strong>'.$image_count.'</strong></p><p><span>Documents: </span><strong>'.$document_count.'</strong></p><p><span>Users: </span><strong>'.$user_count.'</strong></p><p><span>Survey Efforts: </span><strong>'.$survey_effort_count.'</strong></p></div>';
+  
 }
 
 /**

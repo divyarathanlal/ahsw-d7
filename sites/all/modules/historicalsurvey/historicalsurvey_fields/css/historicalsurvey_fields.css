@@ -30,6 +30,7 @@
 .page-dashboard #historicalsurvey-workflow-form th,
 .page-dashboard #historicalsurvey-workflow-form td{
   padding: 1px 10px;
+  vertical-align: top;
 }
 
 .notes .notes-item{  
@@ -437,6 +438,10 @@ td[row="designation_potential"] .main-value {
   height: 75px;
 }
 
+#outer-document-wrapper{  
+  max-height: 240px;
+  overflow-y: scroll !important;
+}
 #outer-document-wrapper .main-value{  
   padding:1px;
 }

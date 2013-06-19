@@ -130,18 +130,41 @@ function historicalsurvey_search_preprocess_historicalsurvey_search_results(arra
     $keys_formatted = '';
     foreach ($result_array as $element_name => $element) {
       if (is_array($element) && $element_name != 'options') {
+      
+      
         foreach ($element as $value) {
           if(!empty($value)) {
+            if(in_array($field_name,array('field_use','field_style')) && !empty($value) && is_numeric($value)) {
+              $term=taxonomy_term_load($value);
+              $parents = taxonomy_get_parents($term->tid);
+              if(!empty($parents)) {
+                $parent = reset($parents);
+                $value=$parent->name.' - '.$term->name;
+              }
+              else{  
+                $value=$term->name;
+              }
+            }
             $keys_formatted .= $value . ', ';
           }
         }
+        
       }
       elseif ($element_name != 'options') {
-        if($element_name == 'select') {
+        if($element_name == 'select') {  
         
           //then its a term key
-          $term = taxonomy_term_load($element);
-          $keys_formatted = $term->name . ' <small>(' . $element . ')</small>, ';
+            $term=taxonomy_term_load($element);
+            $parents = taxonomy_get_parents($term->tid);
+            if(!empty($parents)) {
+              $parent = reset($parents);
+              $term_name=$parent->name.' - '.$term->name;
+            }
+            else{  
+              $term_name=$term->name;
+            }
+          $keys_formatted = $term_name;
+          
         }
         else {
           if(!empty($element)) {

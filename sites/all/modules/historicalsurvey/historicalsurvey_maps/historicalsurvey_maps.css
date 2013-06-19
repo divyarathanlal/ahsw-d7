@@ -98,6 +98,25 @@ body { height: 100%; margin: 0; padding: 0 }
   width:200px;
   padding:0 5px 5px 5px;
 }
+#guide-wrapper p {
+  margin:0 0 5px 0;
+}
+#guide-wrapper a {
+  color:darkblue;
+  font-weight:bold;
+  text-decoration:none;
+}
+#guide-wrapper span {
+  width: 120px;
+  display: inline-block;
+  color:#888;
+}
+#guide-wrapper #stats-outer-wrapper {
+  margin-top:20px
+}
+#guide-wrapper #stats-outer-wrapper strong {
+  font-style:italic;
+}
 .front #contribute{
   width:250px;
   text-align:center;
@@ -109,7 +128,7 @@ body { height: 100%; margin: 0; padding: 0 }
 
 
 .front #guide-wrapper{
-  height: 515px;
+  height: 541px;
   padding-top:20px;
   padding-bottom:20px;
 }

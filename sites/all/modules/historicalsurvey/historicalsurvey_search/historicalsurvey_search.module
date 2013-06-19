@@ -476,12 +476,74 @@ function historicalsurvey_search_address_search_form_validate(array $form, array
  * Submit callback for historicalsurvey_search_search_form().
  */
 function historicalsurvey_search_search_form_submit(array $form, array &$form_state) {
+
+  //prepare the search terms for insertion into watchdog
+  $keys = isset($_SESSION['historicalsurvey_search']['keys']) ? $_SESSION['historicalsurvey_search']['keys'] : FALSE;
+  $options = isset($_SESSION['historicalsurvey_search']['options']) ? $_SESSION['historicalsurvey_search']['options'] : FALSE; 
+  
+  $search = '';
+  foreach ($keys as $field_name => $key_array) {
+    $key_options = '';
+    if(isset($key_array['options'])) {
+      foreach($key_array['options'] as $value) {
+        $key_options .= $value.', ';
+      }
+    }
+    $key_options = rtrim($key_options,', '); 
+    if(!empty($key_options)) {
+      $key_options = '['.$key_options.']';    
+    }
+    foreach ($key_array as $key_name => $key_value) {
+      if($key_name != 'options' && !empty($key_value)) {
+        $key = '';
+        if(is_array($key_value)) {
+          foreach($key_value as $value) {
+            if(in_array($field_name,array('field_use','field_style')) && !empty($value) && is_numeric($value)) {
+              $term=taxonomy_term_load($value);
+              $parents = taxonomy_get_parents($term->tid);
+              if(!empty($parents)) {
+                $parent = reset($parents);
+                $value=$parent->name.' - '.$term->name;
+              }
+              else{  
+                $value=$term->name;
+              }  
+            }
+            $key .= !empty($value)?$value.', ':'';
+          }       
+        }
+        else {
+          $key .= $key_value.', ';
+        }
+        $key = rtrim($key,', ');
+        if(!empty($key)) {
+          $search .= '"'.$key.'" in ('.$field_name.' : '.$key_name.' '.$key_options.'), ';
+        }
+      }      
+    }
+  }
+  $search = rtrim($search,', ');  
+  $set_type = $options['set_type'];
+  watchdog('historicalsurvey_search','Search (@set_type) for: "@search"',array('@set_type'=>$set_type, '@search' => $search),WATCHDOG_INFO);
+  
   $form_state['redirect'] = 'search/results';
 }
 /**
  * Submit callback for historicalsurvey_search_address_search_form().
  */
 function historicalsurvey_search_address_search_form_submit(array $form, array &$form_state) {
+
+  $keys = isset($_SESSION['historicalsurvey_search']['keys']) ? $_SESSION['historicalsurvey_search']['keys'] : FALSE;
+  
+  $search = '';
+  foreach ($keys as $field_name => $key_array) {
+    foreach ($key_array as $key_name => $key_value) {
+      $search = '"'.$key_value.'" in ('.$field_name.' : '.$key_name.'), ';
+    }
+  }
+  $search = rtrim($search,', ');  
+  watchdog('historicalsurvey_search','Search for: @search',array('@search' => $search),WATCHDOG_INFO);
+  
   $form_state['redirect'] = 'search/results';
 }
 

@@ -25,9 +25,10 @@ function historicalsurvey_place_theme($existing, $type, $theme, $path) {
       'render element' => 'form',
     ),
     
-    'historicalsurvey_guide_page_theme' => array(
-      'template' => 'historicalsurvey-guide-page',
-      'variables' => array(),
+    'historicalsurvey_guide_block_theme' => array(
+      'variables' => array(
+        'context' => array(),
+      ),
     ),
   );
 }

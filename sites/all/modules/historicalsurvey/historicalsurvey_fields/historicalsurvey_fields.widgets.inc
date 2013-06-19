@@ -289,7 +289,10 @@ function historicalsurvey_fields_field_widget_form(&$form, &$form_state, $field,
           foreach($items['revisions'] as $deltas) {
             foreach($deltas as $value_array) {
               if(!empty($value_array['tid'])) {
-                $terms .= taxonomy_term_load($value_array['tid'])->name . ', ';
+                $term_object = taxonomy_term_load($value_array['tid']);
+                if(!empty($term_object)) {
+                  $terms .= $term_object->name . ', ';
+                }
               }
             }
           }

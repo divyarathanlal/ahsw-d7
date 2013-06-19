@@ -435,9 +435,14 @@ function historicalsurvey_fields_field_settings_form($field, $instance, $has_dat
  *  - the 'changed' boolean is determined in historicalsurvey_fields_validate()
  * 
  */
-function historicalsurvey_fields_field_is_empty($item,$field){ 
-  if($item['changed']){
-    return FALSE;
+function historicalsurvey_fields_field_is_empty($item,$field){
+
+  //skip higher review levels for now
+  global $user;
+  if(!strpos($field['field_name'],'_2') && !strpos($field['field_name'],'_3') && $field['field_name'] != 'field_designation_official') /* || in_array("preservation officer",$user->roles) || $user->uid==1) */ {
+    if($item['changed']){
+      return FALSE;
+    }
   }
   return TRUE;
 }
@@ -454,7 +459,7 @@ function historicalsurvey_fields_validate($element, &$form_state){
   if($form_state['complete form']['#form_id'] == 'field_ui_field_edit_form'){
     return;
   }
-  
+
   /**
   * here we set the 'changed' if the value of the field has changed for use with field revision display and historicalsurvey_fields_field_is_empty() function
   * and the default 'replaced' value if the field was blank; 
@@ -473,6 +478,7 @@ function historicalsurvey_fields_validate($element, &$form_state){
   //else calculate if things changed for the submitted fields  
   //also, make sure if we set NULL (when for data review functions), the value stays NULL (ie $form_state[input]=$form_state[value] )
   }elseif(isset($form_state['input'][$field_name])){
+  
     $field_info=field_info_field($field_name);
   
     //we handle photos and document uploads in a separate form than the rest of the fields
@@ -620,12 +626,13 @@ function historicalsurvey_fields_validate($element, &$form_state){
     
     // else the form was submitted via the normal edit form, so process the fields
     else {
+        
       switch ($field_info['type']){
         case 'historicalsurvey_text':   
           $new_value=drupal_array_get_nested_value($form_state['input'],$element['value']['#parents']);         
           $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);   
-          if($element['value']['#default_value']!=$new_value || 
-            $element['notes']['#default_value']!=$new_notes_value){
+          if(normalize_newlines($element['value']['#default_value'])!=normalize_newlines($new_value) || 
+            normalize_newlines($element['notes']['#default_value'])!=normalize_newlines($new_notes_value)){
             form_set_value($element['value'],$new_value,$form_state);
             form_set_value($element['notes'],$new_notes_value,$form_state);
             form_set_value($element['changed'],1,$form_state);
@@ -647,18 +654,21 @@ function historicalsurvey_fields_validate($element, &$form_state){
               }
             }
             
-            //reset the keys
+            //reset the keys, and normalize
             $new_values = array_values($new_values);
-                 
+            $new_values = array_intersect_key($new_values, array_flip(element_children($new_values)));
+            
+            //get the existing values
             $default_values=array();
             if(!empty($element['tid']['#default_value'])) {
-              //setup old values for comparison
               foreach($element['tid']['#default_value'] as $key=>$value_array) {
                 if(!empty($value_array['tid'])) {
                   $default_values[$key]=$value_array['tid'];
                 }
               }
             }
+            //and normalize
+            $default_values = array_intersect_key($default_values, array_flip(element_children($default_values)));
             
             //compare old values to new values
             $lang=$form_state['values']['language'];
@@ -685,7 +695,7 @@ function historicalsurvey_fields_validate($element, &$form_state){
             $new_value=drupal_array_get_nested_value($form_state['input'],$element['tid']['#parents']);  
             $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);        
             if($element['tid']['#default_value']!=$new_value || 
-              $element['notes']['#default_value']!=$new_notes_value){          
+              normalize_newlines($element['notes']['#default_value'])!=normalize_newlines($new_notes_value)){          
               form_set_value($element['tid'],$new_value,$form_state);
               form_set_value($element['notes'],$new_notes_value,$form_state);
               form_set_value($element['changed'],1,$form_state);
@@ -698,9 +708,9 @@ function historicalsurvey_fields_validate($element, &$form_state){
           }
         break;
         case 'historicalsurvey_location':
-          if($element['location']['#default_value']!=$element['location']['#value'] ||
-            $element['x']['#default_value']!=$element['x']['#value'] ||
-            $element['y']['#default_value']!=$element['y']['#value']
+          if(normalize_newlines($element['location']['#default_value'])!=normalize_newlines($element['location']['#value']) ||
+            normalize_newlines($element['x']['#default_value'])!=normalize_newlines($element['x']['#value']) ||
+            normalize_newlines($element['y']['#default_value'])!=normalize_newlines($element['y']['#value'])
           ){
             form_set_value($element['changed'],1,$form_state);        
           }
@@ -712,11 +722,11 @@ function historicalsurvey_fields_validate($element, &$form_state){
           $new_value3=drupal_array_get_nested_value($form_state['input'],$element['estimated_early_year']['#parents']);
           $new_value4=drupal_array_get_nested_value($form_state['input'],$element['estimated_late_year']['#parents']);
           $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']); 
-          if($element['actual_early_year']['#default_value']!=$new_value1 ||
-            $element['actual_late_year']['#default_value']!=$new_value2 ||
-            $element['estimated_early_year']['#default_value']!=$new_value3 ||
-            $element['estimated_late_year']['#default_value']!=$new_value4 ||
-            $element['notes']['#default_value']!=$new_notes_value){
+          if(normalize_newlines($element['actual_early_year']['#default_value'])!=normalize_newlines($new_value1) ||
+            normalize_newlines($element['actual_late_year']['#default_value'])!=normalize_newlines($new_value2) ||
+            normalize_newlines($element['estimated_early_year']['#default_value'])!=normalize_newlines($new_value3) ||
+            normalize_newlines($element['estimated_late_year']['#default_value'])!=normalize_newlines($new_value4) ||
+            normalize_newlines($element['notes']['#default_value'])!=normalize_newlines($new_notes_value)){
               form_set_value($element['actual_early_year'],$new_value1,$form_state);
               form_set_value($element['actual_late_year'],$new_value2,$form_state);
               form_set_value($element['estimated_early_year'],$new_value3,$form_state);
@@ -731,11 +741,11 @@ function historicalsurvey_fields_validate($element, &$form_state){
             form_set_value($element['replaced'],1,$form_state);
           }        
         break;
-        case 'historicalsurvey_node_reference':
+        /* case 'historicalsurvey_node_reference':
           $new_value=drupal_array_get_nested_value($form_state['input'],$element['nid']['#parents']); 
           $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);      
-          if($element['nid']['#default_value']!=$new_value || 
-            $element['notes']['#default_value']!=$new_notes_value){ 
+          if(normalize_newlines($element['nid']['#default_value'])!=normalize_newlines($new_value) || 
+            normalize_newlines($element['notes']['#default_value'])!=normalize_newlines($new_notes_value)){ 
             form_set_value($element['nid'],$new_value,$form_state);
             form_set_value($element['notes'],$new_notes_value,$form_state);
             form_set_value($element['changed'],1,$form_state);
@@ -749,8 +759,8 @@ function historicalsurvey_fields_validate($element, &$form_state){
         case 'historicalsurvey_user_reference':
           $new_value=drupal_array_get_nested_value($form_state['input'],$element['uid']['#parents']);
           $new_notes_value=drupal_array_get_nested_value($form_state['input'],$element['notes']['#parents']);        
-          if($element['uid']['#default_value']!=$new_value || 
-            $element['notes']['#default_value']!=$new_notes_value){ 
+          if(normalize_newlines($element['uid']['#default_value'])!=normalize_newlines($new_value) || 
+            normalize_newlines($element['notes']['#default_value'])!=normalize_newlines($new_notes_value)){ 
             form_set_value($element['uid'],$new_value,$form_state);
             form_set_value($element['notes'],$new_notes_value,$form_state);
             form_set_value($element['changed'],1,$form_state);
@@ -760,7 +770,7 @@ function historicalsurvey_fields_validate($element, &$form_state){
           if((!empty($new_value) || !empty($new_notes_value)) && (empty($element['uid']['#default_value']) && empty($element['notes']['#default_value']))){
             form_set_value($element['replaced'],1,$form_state);
           }
-        break;
+        break; */
         case 'historicalsurvey_photo':
         case 'historicalsurvey_document':
           foreach(element_children($element) as $delta){
@@ -768,6 +778,7 @@ function historicalsurvey_fields_validate($element, &$form_state){
           }     
         break;
       }
+    
     }
   }
 }
@@ -1125,7 +1136,7 @@ function historicalsurvey_fields_info_field_no_review($field,$review_level_key){
 }
 
 /* 
- * Helper Functions to retrieve field label
+ * Helper Function to retrieve field label
  */
 function historicalsurvey_fields_get_field_label($field_name){
   
@@ -1148,5 +1159,15 @@ function historicalsurvey_fields_get_field_label($field_name){
     }
   } 
   return '';
+}
+
+/* 
+ * Helper Function makes sure Windows line endings (CRLF, '\r\n') are converted to Unix line endings (LF,'\n')
+ */
+function normalize_newlines($s) {
+    $s = str_replace("\r\n", "\n", $s);    
+    // Don't allow out-of-control blank lines
+    $s = preg_replace("/\n{2,}/", "\n\n", $s);    
+    return $s;
 }
 
